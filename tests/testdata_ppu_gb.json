@@ -1,0 +1,62 @@
+[
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/hblank_ly_scx_timing-GS.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/intr_1_2_timing-GS.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/intr_2_0_timing.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/intr_2_mode0_timing.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/intr_2_mode0_timing_sprites.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/intr_2_mode3_timing.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/intr_2_oam_ok_timing.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/lcdon_timing-GS.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/lcdon_write_timing-GS.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/stat_irq_blocking.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/stat_lyc_onoff.gb",
+        "maxClocks": 50000000
+    },
+    {
+        "expectedOutput": "\u0003\u0005\u0008\u000d\u0015\u0022",
+        "romFile": "roms/mooneye/acceptance/ppu/vblank_stat_intr-GS.gb",
+        "maxClocks": 50000000
+    }
+]

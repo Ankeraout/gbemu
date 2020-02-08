@@ -1,0 +1,13 @@
+.vscode
+*.o
+bin
+obj
+.vs
+x86
+x64
+Debug
+Release
+*.user
+*.bin
+*.gb
+tests/roms

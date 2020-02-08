@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Header Files\gb">
+      <UniqueIdentifier>{ee4c8346-beb7-451f-ab0d-73ba3eb7d25c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\gb\cartridgeControllers">
+      <UniqueIdentifier>{488c6fb4-8e5a-4b5d-86b0-1021ed2f31c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\gb">
+      <UniqueIdentifier>{a966b02b-dffa-465c-96d6-9eeaa4ea2b03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\gb\cartridgeControllers">
+      <UniqueIdentifier>{fdb9efd8-40d9-46ae-a411-b3e9614a95f4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="gbemu.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cartridgecontrollers\none.c">
+      <Filter>Source Files\gb\cartridgeControllers</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\apu.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\bios.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cartridge.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\dma.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cpu.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\gb.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\joypad.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\mmu.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\ppu.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\serial.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\timer.c">
+      <Filter>Source Files\gb</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cartridgeControllers\mbc1.c">
+      <Filter>Source Files\gb\cartridgeControllers</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cartridgeControllers\mbc5.c">
+      <Filter>Source Files\gb\cartridgeControllers</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cartridgeControllers\mbc2.c">
+      <Filter>Source Files\gb\cartridgeControllers</Filter>
+    </ClCompile>
+    <ClCompile Include="gb\cartridgeControllers\mbc3.c">
+      <Filter>Source Files\gb\cartridgeControllers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="gbemu.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\apu.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\bios.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cartridge.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cpu.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\dma.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\gb.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\joypad.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\mmu.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\ppu.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\serial.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\timer.h">
+      <Filter>Header Files\gb</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cartridgecontrollers\none.h">
+      <Filter>Header Files\gb\cartridgeControllers</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cartridgeControllers\mbc1.h">
+      <Filter>Header Files\gb\cartridgeControllers</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cartridgeControllers\mbc5.h">
+      <Filter>Header Files\gb\cartridgeControllers</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cartridgeControllers\mbc2.h">
+      <Filter>Header Files\gb\cartridgeControllers</Filter>
+    </ClInclude>
+    <ClInclude Include="gb\cartridgeControllers\mbc3.h">
+      <Filter>Header Files\gb\cartridgeControllers</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
