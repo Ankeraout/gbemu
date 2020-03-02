@@ -137,7 +137,15 @@ static const uint8_t gb_cpu_interruptFlagSetTable[32] = {
 */
 
 static inline uint8_t fetch8() {
-	return gb_mmu_read8_cycle(GB_CPU.pc++);
+	uint8_t result = gb_mmu_read8_cycle(GB_CPU.pc);
+
+	if(GB_CPU.halt_bug) {
+		GB_CPU.halt_bug = false;
+	} else {
+		GB_CPU.pc++;
+	}
+
+	return result;
 }
 
 static inline uint16_t fetch16() {
@@ -605,6 +613,7 @@ void gb_cpu_instruction() {
 	if(GB_CPU.halted && intFlags) {
 		GB_CPU.halted = false;
 		gb_cycleNoCPU();
+
 		return;
 	}
 
@@ -1131,7 +1140,12 @@ void gb_cpu_instruction() {
 			break;
 
 		case 0x76: // HALT
+			if(GB_CPU.ioreg_if & GB.hram[0x7f] & 0x1f) {
+				GB_CPU.halt_bug = true;
+			}
+
 			GB_CPU.halted = true;
+
 			break;
 
 		case 0x77: // LD (HL), A

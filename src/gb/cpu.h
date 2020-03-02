@@ -70,6 +70,7 @@ typedef struct {
 	bool ime;
 	bool ime_enableNextCycle;
 	uint8_t ioreg_if;
+	bool halt_bug;
 } gb_cpu_t;
 
 void gb_cpu_init();
