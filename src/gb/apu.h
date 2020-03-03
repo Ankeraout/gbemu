@@ -17,6 +17,8 @@ typedef struct {
 	int c1_sweepMultiplier;
 	unsigned int c1_sweepShiftCount;
 	bool c1_stopWhenLengthZero;
+	unsigned int c1_frequency;
+	unsigned int c1_envelope;
 	uint8_t nr10;
 	uint8_t nr11;
 	uint8_t nr12;
@@ -60,6 +62,7 @@ typedef struct {
 
 void gb_apu_init();
 void gb_apu_cycle();
+float gb_apu_getAudioSample();
 
 uint8_t gb_apu_read_ff10();
 uint8_t gb_apu_read_ff11();

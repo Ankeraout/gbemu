@@ -1,6 +1,12 @@
 #include <string.h>
 
+#include <SDL2/SDL.h>
+
 #include <gb/gb.h>
+
+#define AUDIO_BUFFER_SIZE 2048
+#define PI 3.14159265358979323846
+#define PI2 (2 * PI)
 
 static const uint8_t gb_apu_wavePatternRamInitialValues[16] = {
 	0x84, 0x40, 0x43, 0xaa,
@@ -9,11 +15,81 @@ static const uint8_t gb_apu_wavePatternRamInitialValues[16] = {
 	0x34, 0xb8, 0x2e, 0xda
 };
 
+float audioBuffer[AUDIO_BUFFER_SIZE];
+int audioBufferWriteCursor = 0;
+int audioBufferReadCursor = 0;
+volatile int audioBufferSize = 0;
+
 void gb_apu_init() {
 	memset(&GB_APU, 0, sizeof(GB_APU));
 	
 	for(unsigned int i = 0; i < 16; i++) {
 		GB_APU.wavePattern[i] = gb_apu_wavePatternRamInitialValues[i];
+	}
+}
+
+static float generateSquareWave(double x) {
+	if(fmod(x, 1) >= 0.5) {
+		return 1;
+	} else {
+		return -1;
+	}
+}
+
+static inline float gb_apu_generateSampleChannel1(double timing) {
+	double c1freq = GB_APU.nr13 | ((GB_APU.nr14 & 0x07) << 8);
+	c1freq = 131072.0 / (2048 - c1freq);
+
+	return generateSquareWave(timing * c1freq);
+}
+
+static inline float gb_apu_generateSampleChannel2(double timing) {
+	double c2freq = GB_APU.nr23 | ((GB_APU.nr24 & 0x07) << 8);
+	c2freq = 131072.0 / (2048 - c2freq);
+
+	return generateSquareWave(timing * c2freq);
+}
+
+static inline float gb_apu_generateSampleChannel3(double timing) {
+	UNUSED_PARAMETER(timing);
+	return 0;
+}
+
+static inline float gb_apu_generateSampleChannel4(double timing) {
+	UNUSED_PARAMETER(timing);
+	return 0;
+}
+
+static inline void gb_apu_generateSample() {
+	while(audioBufferSize == AUDIO_BUFFER_SIZE) {
+		SDL_Delay(1);
+	}
+
+	if(audioBufferSize < AUDIO_BUFFER_SIZE) {
+		double timing = (double)GB.clocks / (double)(1048576 * 4);
+		float sample = 0;
+
+		if(GB_APU.c1_onFlag) {
+			sample += gb_apu_generateSampleChannel1(timing) * .25f;
+		}
+
+		if(GB_APU.c2_onFlag) {
+			sample += gb_apu_generateSampleChannel2(timing) * .25f;
+		}
+
+		if(GB_APU.c3_onFlag) {
+			sample += gb_apu_generateSampleChannel3(timing) * .25f;
+		}
+
+		if(GB_APU.c4_onFlag) {
+			sample += gb_apu_generateSampleChannel4(timing) * .25f;
+		}
+
+		audioBuffer[audioBufferWriteCursor] = sample;
+
+		audioBufferWriteCursor++;
+		audioBufferWriteCursor %= AUDIO_BUFFER_SIZE;
+		audioBufferSize++;
 	}
 }
 
@@ -80,12 +156,34 @@ void gb_apu_frameSequencerClock() {
 }
 
 void gb_apu_cycle() {
+	static unsigned int lastClock = 0;
+	unsigned int clock = ((double)GB.clocks * 44100.0 / (1048576.0 * 4.0));
+
 	if(GB_APU.enabled) {
 		GB_APU.clock_512hz++;
 
 		if((GB_APU.clock_512hz & 0x07ff) == 0) {
 			gb_apu_frameSequencerClock();
 		}
+	}
+
+	if(clock != lastClock) {
+		gb_apu_generateSample();
+		lastClock = clock;
+	}
+}
+
+float gb_apu_getAudioSample() {
+	if(audioBufferSize == 0) {
+		return 0;
+	} else {
+		float sample = audioBuffer[audioBufferReadCursor];
+		
+		audioBufferReadCursor++;
+		audioBufferReadCursor %= AUDIO_BUFFER_SIZE;
+		audioBufferSize--;
+
+		return sample;
 	}
 }
 

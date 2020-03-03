@@ -1,7 +1,7 @@
 CC=cc -c
 CFLAGS=-W -Wall -Wextra -pedantic
 LD=cc
-LDFLAGS=`sdl2-config --libs`
+LDFLAGS=`sdl2-config --libs` -lm
 
 SOURCES:=$(shell find src/ -type f -name '*.c')
 OBJECTS=$(SOURCES:src/%.c=obj/%.o)

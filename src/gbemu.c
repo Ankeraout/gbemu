@@ -17,6 +17,10 @@ gbemu_options_t gbemu_options;
 size_t getFileSize(FILE *file);
 int readFile(FILE *file, uint8_t *buffer, size_t size);
 void limitFps();
+void audioCallback(void *userdata, Uint8 *stream, int len);
+
+SDL_AudioDeviceID audioDeviceID;
+SDL_AudioSpec audioDeviceSpec;
 
 static inline void mainLoop_handleKeyboardEvent(bool keyDown, SDL_Keycode keyCode) {
 	switch(keyCode) {
@@ -179,6 +183,8 @@ int main(int argc, char *argv[]) {
 				args.flag_redirectSerialFile = true;
 			} else if(strcmp(arg, "--disable-graphics") == 0) {
 				gbemu_options.disableGraphics = true;
+			} else if(strcmp(arg, "--disable-audio") == 0) {
+				gbemu_options.disableAudio = true;
 			} else if(strcmp(arg, "--disable-sram-load") == 0) {
 				gbemu_options.disableSramLoad = true;
 			} else if(strcmp(arg, "--disable-sram-save") == 0) {
@@ -221,6 +227,7 @@ int main(int argc, char *argv[]) {
 		printf("\t--redirect-serial-stdout: Redirects serial output to stdout.\n");
 		printf("\t--redirect-serial-file <file>: Redirects serial output to the given file.\n");
 		printf("\t--disable-graphics: Disables the graphics to speed up emulation (useful for tests).\n");
+		printf("\t--disable-audio: Disables sound output.\n");
 		printf("\t--disable-sram-load: Prevents the emulator from loading the save file.\n");
 		printf("\t--disable-sram-save: Prevents the emulator from writing the save file.\n");
 		printf("\t--serial-output-hex: Writes serial output as hex characters.\n");
@@ -295,7 +302,7 @@ int main(int argc, char *argv[]) {
 
 	if(!gbemu_options.disableGraphics) {
 		// Initialize SDL
-		if(SDL_Init(SDL_INIT_VIDEO)) {
+		if(SDL_Init(SDL_INIT_VIDEO | ((gbemu_options.disableAudio) ? 0 : SDL_INIT_AUDIO))) {
 			fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
 			return EXIT_FAILURE;
 		}
@@ -314,6 +321,30 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Failed to create emulator window.\n");
 			return EXIT_FAILURE;
 		}
+	} else if(!gbemu_options.disableAudio) {
+		// Initialize SDL
+		if(SDL_Init(SDL_INIT_AUDIO)) {
+			fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
+			return EXIT_FAILURE;
+		}
+	}
+
+	if(!gbemu_options.disableAudio) {
+		SDL_AudioSpec wantedAudioSpec;
+		wantedAudioSpec.callback = audioCallback;
+		wantedAudioSpec.channels = 1;
+		wantedAudioSpec.format = AUDIO_F32SYS;
+		wantedAudioSpec.freq = 44100;
+		wantedAudioSpec.samples = 1024;
+		
+		audioDeviceID = SDL_OpenAudioDevice(NULL, 0, &wantedAudioSpec, &audioDeviceSpec, 0);
+
+		if(audioDeviceID == 0) {
+			fprintf(stderr, "Audio device initialization failed: %s\n", SDL_GetError());
+			return EXIT_FAILURE;
+		}
+
+		SDL_PauseAudioDevice(audioDeviceID, 0);
 	}
 
     if(gb_init(window, biosData, romData, romFileSize)) {
@@ -359,7 +390,7 @@ int main(int argc, char *argv[]) {
 		gb_frame();
 
 		// Limit FPS
-		if(!gbemu_options.disableFpsLimit) {
+		if(!gbemu_options.disableFpsLimit && gbemu_options.disableAudio) {
 			limitFps();
 		}
 
@@ -418,4 +449,18 @@ void limitFps() {
 	}
 
 	lastFrameTime = SDL_GetTicks();
+}
+
+extern int audioBufferSize;
+
+void audioCallback(void *userdata, Uint8 *stream, int len) {
+	UNUSED_PARAMETER(userdata);
+
+	int sampleCount = len >> 2;
+
+	printf("Asked for %d samples at %d (%d available).\n", sampleCount, SDL_GetTicks(), audioBufferSize);
+	
+	for(int i = 0; i < sampleCount; i++) {
+		((float *)stream)[i] = gb_apu_getAudioSample();
+	}
 }

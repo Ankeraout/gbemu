@@ -35,6 +35,7 @@ typedef struct {
 	bool disableFpsLimit;
 	bool redirectSerial;
 	bool disableGraphics;
+	bool disableAudio;
 	bool disableSramLoad;
 	bool disableSramSave;
 	bool serialOutputHex;
@@ -50,5 +51,7 @@ extern gbemu_options_t gbemu_options;
 
 size_t getFileSize(FILE *file);
 int readFile(FILE *file, uint8_t *buffer, size_t size);
+void pauseAudioDevice();
+void startAudioDevice();
 
 #endif
