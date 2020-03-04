@@ -334,8 +334,8 @@ int main(int argc, char *argv[]) {
 		wantedAudioSpec.callback = audioCallback;
 		wantedAudioSpec.channels = 1;
 		wantedAudioSpec.format = AUDIO_F32SYS;
-		wantedAudioSpec.freq = 44100;
-		wantedAudioSpec.samples = 1024;
+		wantedAudioSpec.freq = AUDIO_SAMPLE_RATE;
+		wantedAudioSpec.samples = AUDIO_BUFFER_SIZE;
 		
 		audioDeviceID = SDL_OpenAudioDevice(NULL, 0, &wantedAudioSpec, &audioDeviceSpec, 0);
 

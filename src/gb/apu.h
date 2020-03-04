@@ -8,6 +8,9 @@
 
 #define GB_APU (GB.apu)
 
+#define AUDIO_BUFFER_SIZE 1024
+#define AUDIO_SAMPLE_RATE 44100
+
 typedef struct {
 	bool enabled;
 
@@ -17,8 +20,13 @@ typedef struct {
 	int c1_sweepMultiplier;
 	unsigned int c1_sweepShiftCount;
 	bool c1_stopWhenLengthZero;
-	unsigned int c1_frequency;
-	unsigned int c1_envelope;
+
+	double c1_frequency;
+	double c1_volume;
+	unsigned int c1_volumeSweepCounter;
+	unsigned int c1_volumeSweepLength;
+	int c1_volumeSweepDirection;
+
 	uint8_t nr10;
 	uint8_t nr11;
 	uint8_t nr12;
@@ -28,6 +36,13 @@ typedef struct {
 	bool c2_onFlag;
 	unsigned int c2_length;
 	bool c2_stopWhenLengthZero;
+
+	double c2_frequency;
+	double c2_volume;
+	unsigned int c2_volumeSweepCounter;
+	unsigned int c2_volumeSweepLength;
+	int c2_volumeSweepDirection;
+
 	uint8_t nr21;
 	uint8_t nr22;
 	uint8_t nr23;
@@ -36,6 +51,7 @@ typedef struct {
 	bool c3_onFlag;
 	unsigned int c3_length;
 	bool c3_stopWhenLengthZero;
+	double c3_volume;
 	uint8_t nr30;
 	uint8_t nr31;
 	uint8_t nr32;
@@ -45,6 +61,7 @@ typedef struct {
 	bool c4_onFlag;
 	unsigned int c4_length;
 	bool c4_stopWhenLengthZero;
+	double c4_volume;
 	uint8_t nr41;
 	uint8_t nr42;
 	uint8_t nr43;
