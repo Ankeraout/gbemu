@@ -1,43 +1,39 @@
-CC=cc -c
-CFLAGS=-W -Wall -Wextra -pedantic
-LD=cc
-LDFLAGS=`sdl2-config --libs` -lm
+MAKEFLAGS += --no-builtin-rules
 
-SOURCES:=$(shell find src/ -type f -name '*.c')
-OBJECTS=$(SOURCES:src/%.c=obj/%.o)
-SUBDIRS=$(dir $(OBJECTS))
-EXEC=bin/gbemu
+MKDIR := mkdir -p
+RM := rm -rf
+CC := gcc -c
+LD := gcc
 
-ifeq ($(MODE),)
-	MODE = release
-endif
+CFLAGS += -MMD -MP
+CFLAGS += -W -Wall -Wextra
+CFLAGS += -std=gnu99 -pedantic-errors
+CFLAGS += -s -O3
+CFLAGS += -Isrc -Isrc/util -Isrc/core
+LDFLAGS += -s -O3
 
-ifeq ($(OS),Windows_NT)
-	EXEC := $(EXEC).exe
-endif
+rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-ifeq ($(MODE), debug)
-	CFLAGS += -DDEBUG -O0 -g
-	LDFLAGS += -DDEBUG -O0 -g
-else
-	CFLAGS += -DRELEASE -O3 -s -march=native
-	LDFLAGS += -DRELEASE -O3 -s -march=native
-endif
+SOURCES := $(call rwildcard, src, *.c)
+OBJECTS := $(patsubst src/%.c, obj/%.o, $(SOURCES))
+DIRECTORIES := $(patsubst src/%, obj/%, $(dir $(SOURCES)))
+EXECUTABLE := bin/gbemu
+DEPENDENCIES := $(patsubst src/%.c, obj/%.c.d, $(SOURCES))
 
-CFLAGS += -I`pwd`/src
+all: dirs $(EXECUTABLE)
 
-DUMMY := $(shell mkdir -p $(SUBDIRS))
-
-all: $(EXEC)
-
-$(EXEC): bin $(OBJECTS)
-	$(LD) $(OBJECTS) $(LDFLAGS) -o $@
-
-obj/%.o: src/%.c $(SUBDIRS)
+obj/%.o: src/%.c
 	$(CC) $(CFLAGS) $< -o $@
 
-bin:
-	mkdir bin
+$(EXECUTABLE): $(OBJECTS)
+	$(LD) $(LDFLAGS) $^ -o $@ -lSDL2
 
 clean:
-	rm -rf bin obj
+	$(RM) bin obj
+
+-include $(DEPENDENCIES)
+
+dirs:
+	$(MKDIR) bin $(DIRECTORIES)
+
+.PHONY: all clean dirs
