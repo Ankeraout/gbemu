@@ -9,8 +9,10 @@ CFLAGS += -MMD -MP
 CFLAGS += -W -Wall -Wextra
 CFLAGS += -std=gnu99 -pedantic-errors
 CFLAGS += -s -O3
-CFLAGS += -Isrc -Isrc/util -Isrc/core
+CFLAGS += -Iinclude
+CFLAGS += `sdl2-config --cflags`
 LDFLAGS += -s -O3
+LIBS += `sdl2-config --libs`
 
 rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
@@ -26,7 +28,7 @@ obj/%.o: src/%.c
 	$(CC) $(CFLAGS) $< -o $@
 
 $(EXECUTABLE): $(OBJECTS)
-	$(LD) $(LDFLAGS) $^ -o $@ -lSDL2
+	$(LD) $(LDFLAGS) $^ $(LIBS) -o $@
 
 clean:
 	$(RM) bin obj
