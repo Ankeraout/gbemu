@@ -8,6 +8,6 @@ void coreSetBios(const void *p_bios);
 int coreSetRom(const void *p_rom, size_t p_size);
 void coreReset(void);
 void coreFrameAdvance(void);
-void coreCycle(void);
+void coreStep(void);
 
 #endif

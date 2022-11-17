@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include "core/apu.h"
 #include "core/bios.h"
 #include "core/bus.h"
 #include "core/cartridge.h"
@@ -42,6 +43,6 @@ void coreFrameAdvance(void) {
 
 }
 
-void coreCycle(void) {
+void coreStep(void) {
 
 }
