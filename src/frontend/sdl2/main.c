@@ -48,6 +48,16 @@ int main(int p_argc, char *p_argv[]) {
         return 1;
     }
 
+    if(coreInit() != 0) {
+        return 1;
+    }
+
+    coreSetBios(s_biosData);
+    coreSetRom(s_romData, s_romSize);
+    coreReset();
+
+    coreStep();
+
     return 0;
 }
 

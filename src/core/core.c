@@ -44,5 +44,5 @@ void coreFrameAdvance(void) {
 }
 
 void coreStep(void) {
-
+    coreCpuStep();
 }

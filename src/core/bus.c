@@ -83,6 +83,10 @@ void coreBusReset(void) {
         s_coreBusWriteFuncTable[l_address] = coreTimerWrite;
     }
 
+    // CPU IF
+    s_coreBusReadFuncTable[0xff0f] = coreCpuRead;
+    s_coreBusWriteFuncTable[0xff0f] = coreCpuWrite;
+
     // APU I/O
     for(uint16_t l_address = 0xff10; l_address <= 0xff26; l_address++) {
         s_coreBusReadFuncTable[l_address] = coreApuReadIo;
