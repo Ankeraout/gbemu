@@ -57,16 +57,23 @@ static inline uint8_t coreCpuFetch8(void);
 static inline uint16_t coreCpuFetch16(void);
 static inline uint16_t coreCpuRead16(uint16_t p_address);
 static inline void coreCpuWrite16(uint16_t p_address, uint16_t p_value);
+static inline void coreCpuOpAdc(uint8_t p_value);
 static inline void coreCpuOpAdd(uint8_t p_value);
 static inline void coreCpuOpAddHl(uint16_t p_value);
+static inline void coreCpuOpAnd(uint8_t p_value);
+static inline void coreCpuOpCp(uint8_t p_value);
 static inline void coreCpuOpDaa(void);
 static inline uint8_t coreCpuOpDec8(uint8_t p_value);
 static inline void coreCpuOpInc16(uint16_t *p_register);
 static inline uint8_t coreCpuOpInc8(uint8_t p_value);
+static inline void coreCpuOpOr(uint8_t p_value);
 static inline void coreCpuOpRlBase(uint8_t *p_register);
 static inline void coreCpuOpRlcBase(uint8_t *p_register);
 static inline void coreCpuOpRrBase(uint8_t *p_register);
 static inline void coreCpuOpRrcBase(uint8_t *p_register);
+static inline void coreCpuOpSbc(uint8_t p_value);
+static inline void coreCpuOpSub(uint8_t p_value);
+static inline void coreCpuOpXor(uint8_t p_value);
 
 void coreCpuReset(void) {
     s_coreCpuRegisterAF.word = 0x0000;
@@ -467,6 +474,518 @@ void coreCpuStep(void) {
             s_coreCpuFlagC = !s_coreCpuFlagC;
             break;
 
+        case 0x40: // LD B, B
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x41: // LD B, C
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x42: // LD B, D
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x43: // LD B, E
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x44: // LD B, H
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x45: // LD B, L
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x46: // LD B, (HL)
+            s_coreCpuRegisterBC.byte.high = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x47: // LD B, A
+            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x48: // LD C, B
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x49: // LD C, C
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x4a: // LD C, D
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x4b: // LD C, E
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x4c: // LD C, H
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x4d: // LD C, L
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x4e: // LD C, (HL)
+            s_coreCpuRegisterBC.byte.low = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x4f: // LD C, A
+            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x50: // LD D, B
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x51: // LD D, C
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x52: // LD D, D
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x53: // LD D, E
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x54: // LD D, H
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x55: // LD D, L
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x56: // LD D, (HL)
+            s_coreCpuRegisterDE.byte.high = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x57: // LD D, A
+            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x58: // LD E, B
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x59: // LD E, C
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x5a: // LD E, D
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x5b: // LD E, E
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x5c: // LD E, H
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x5d: // LD E, L
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x5e: // LD E, (HL)
+            s_coreCpuRegisterDE.byte.low = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x5f: // LD E, A
+            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x60: // LD H, B
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x61: // LD H, C
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x62: // LD H, D
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x63: // LD H, E
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x64: // LD H, H
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x65: // LD H, L
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x66: // LD H, (HL)
+            s_coreCpuRegisterHL.byte.high = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x67: // LD H, A
+            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x68: // LD L, B
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x69: // LD L, C
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x6a: // LD L, D
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x6b: // LD L, E
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x6c: // LD L, H
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x6d: // LD L, L
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x6e: // LD L, (HL)
+            s_coreCpuRegisterHL.byte.low = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x6f: // LD L, A
+            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x70: // LD (HL), B
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0x71: // LD (HL), C
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0x72: // LD (HL), D
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0x73: // LD (HL), E
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0x74: // LD (HL), H
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0x75: // LD (HL), L
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0x76: // HALT
+            // TODO
+            break;
+
+        case 0x77: // LD (HL), A
+            coreBusWrite(s_coreCpuRegisterHL.word, s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0x78: // LD A, B
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterBC.byte.high;
+            break;
+
+        case 0x79: // LD A, C
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterBC.byte.low;
+            break;
+
+        case 0x7a: // LD A, D
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterDE.byte.high;
+            break;
+
+        case 0x7b: // LD A, E
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterDE.byte.low;
+            break;
+
+        case 0x7c: // LD A, H
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterHL.byte.high;
+            break;
+
+        case 0x7d: // LD A, L
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterHL.byte.low;
+            break;
+
+        case 0x7e: // LD A, (HL)
+            s_coreCpuRegisterAF.byte.high = coreBusRead(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0x7f: // LD A, A
+            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterAF.byte.high;
+            break;
+
+        case 0x80: // ADD A, B
+            coreCpuOpAdd(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0x81: // ADD A, C
+            coreCpuOpAdd(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0x82: // ADD A, D
+            coreCpuOpAdd(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0x83: // ADD A, E
+            coreCpuOpAdd(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0x84: // ADD A, H
+            coreCpuOpAdd(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0x85: // ADD A, L
+            coreCpuOpAdd(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0x86: // ADD A, (HL)
+            coreCpuOpAdd(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0x87: // ADD A, A
+            coreCpuOpAdd(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0x88: // ADC A, B
+            coreCpuOpAdc(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0x89: // ADC A, C
+            coreCpuOpAdc(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0x8a: // ADC A, D
+            coreCpuOpAdc(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0x8b: // ADC A, E
+            coreCpuOpAdc(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0x8c: // ADC A, H
+            coreCpuOpAdc(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0x8d: // ADC A, L
+            coreCpuOpAdc(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0x8e: // ADC A, (HL)
+            coreCpuOpAdc(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0x8f: // ADC A, A
+            coreCpuOpAdc(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0x90: // SUB A, B
+            coreCpuOpSub(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0x91: // SUB A, C
+            coreCpuOpSub(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0x92: // SUB A, D
+            coreCpuOpSub(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0x93: // SUB A, E
+            coreCpuOpSub(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0x94: // SUB A, H
+            coreCpuOpSub(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0x95: // SUB A, L
+            coreCpuOpSub(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0x96: // SUB A, (HL)
+            coreCpuOpSub(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0x97: // SUB A, A
+            coreCpuOpSub(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0x98: // SBC A, B
+            coreCpuOpSbc(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0x99: // SBC A, C
+            coreCpuOpSbc(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0x9a: // SBC A, D
+            coreCpuOpSbc(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0x9b: // SBC A, E
+            coreCpuOpSbc(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0x9c: // SBC A, H
+            coreCpuOpSbc(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0x9d: // SBC A, L
+            coreCpuOpSbc(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0x9e: // SBC A, (HL)
+            coreCpuOpSbc(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0x9f: // SBC A, A
+            coreCpuOpSbc(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xa0: // AND A, B
+            coreCpuOpAnd(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0xa1: // AND A, C
+            coreCpuOpAnd(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0xa2: // AND A, D
+            coreCpuOpAnd(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0xa3: // AND A, E
+            coreCpuOpAnd(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0xa4: // AND A, H
+            coreCpuOpAnd(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0xa5: // AND A, L
+            coreCpuOpAnd(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0xa6: // AND A, (HL)
+            coreCpuOpAnd(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0xa7: // AND A, A
+            coreCpuOpAnd(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xa8: // XOR A, B
+            coreCpuOpXor(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0xa9: // XOR A, C
+            coreCpuOpXor(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0xaa: // XOR A, D
+            coreCpuOpXor(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0xab: // XOR A, E
+            coreCpuOpXor(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0xac: // XOR A, H
+            coreCpuOpXor(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0xad: // XOR A, L
+            coreCpuOpXor(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0xae: // XOR A, (HL)
+            coreCpuOpXor(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0xaf: // XOR A, A
+            coreCpuOpXor(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xb0: // OR A, B
+            coreCpuOpOr(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0xb1: // OR A, C
+            coreCpuOpOr(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0xb2: // OR A, D
+            coreCpuOpOr(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0xb3: // OR A, E
+            coreCpuOpOr(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0xb4: // OR A, H
+            coreCpuOpOr(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0xb5: // OR A, L
+            coreCpuOpOr(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0xb6: // OR A, (HL)
+            coreCpuOpOr(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0xb7: // OR A, A
+            coreCpuOpOr(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xb8: // CP A, B
+            coreCpuOpCp(s_coreCpuRegisterBC.byte.high);
+            break;
+
+        case 0xb9: // CP A, C
+            coreCpuOpCp(s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0xba: // CP A, D
+            coreCpuOpCp(s_coreCpuRegisterDE.byte.high);
+            break;
+
+        case 0xbb: // CP A, E
+            coreCpuOpCp(s_coreCpuRegisterDE.byte.low);
+            break;
+
+        case 0xbc: // CP A, H
+            coreCpuOpCp(s_coreCpuRegisterHL.byte.high);
+            break;
+
+        case 0xbd: // CP A, L
+            coreCpuOpCp(s_coreCpuRegisterHL.byte.low);
+            break;
+
+        case 0xbe: // CP A, (HL)
+            coreCpuOpCp(coreBusRead(s_coreCpuRegisterHL.word));
+            break;
+
+        case 0xbf: // CP A, A
+            coreCpuOpCp(s_coreCpuRegisterAF.byte.high);
+            break;
+
         default: // Freeze the CPU
             // TODO
             break;
@@ -548,6 +1067,22 @@ static inline void coreCpuWrite16(uint16_t p_address, uint16_t p_value) {
     coreBusWrite(p_address + 1, p_value >> 8);
 }
 
+static inline void coreCpuOpAdc(uint8_t p_value) {
+    int l_carry = s_coreCpuFlagC ? 1 : 0;
+
+    s_coreCpuFlagN = false;
+    s_coreCpuFlagH = (
+        (s_coreCpuRegisterAF.byte.high & 0x0f) + (p_value & 0x0f) + l_carry
+    ) >= 0x10;
+    s_coreCpuFlagC = (
+        s_coreCpuRegisterAF.byte.high + p_value + l_carry
+    ) >= 0x100;
+
+    s_coreCpuRegisterAF.byte.high += p_value + l_carry;
+
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == 0;
+}
+
 static inline void coreCpuOpAdd(uint8_t p_value) {
     s_coreCpuFlagN = false;
     s_coreCpuFlagH = (
@@ -571,6 +1106,22 @@ static inline void coreCpuOpAddHl(uint16_t p_value) {
     s_coreCpuRegisterHL.word += p_value;
 
     coreBusCycle();
+}
+
+static inline void coreCpuOpAnd(uint8_t p_value) {
+    s_coreCpuRegisterAF.byte.high &= p_value;
+
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == 0;
+    s_coreCpuFlagN = false;
+    s_coreCpuFlagH = true;
+    s_coreCpuFlagC = false;
+}
+
+static inline void coreCpuOpCp(uint8_t p_value) {
+    s_coreCpuFlagN = true;
+    s_coreCpuFlagH = (s_coreCpuRegisterAF.byte.high & 0x0f) < (p_value & 0x0f);
+    s_coreCpuFlagC = s_coreCpuRegisterAF.byte.high < p_value;
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == p_value;
 }
 
 static inline void coreCpuOpDaa(void) {
@@ -622,6 +1173,15 @@ static inline uint8_t coreCpuOpInc8(uint8_t p_value) {
     return p_value;
 }
 
+static inline void coreCpuOpOr(uint8_t p_value) {
+    s_coreCpuRegisterAF.byte.high |= p_value;
+
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == 0;
+    s_coreCpuFlagN = false;
+    s_coreCpuFlagH = false;
+    s_coreCpuFlagC = false;
+}
+
 static inline void coreCpuOpRlBase(uint8_t *p_register) {
     uint8_t l_savedBit = s_coreCpuFlagC ? 1 : 0;
 
@@ -656,4 +1216,37 @@ static inline void coreCpuOpRrcBase(uint8_t *p_register) {
     s_coreCpuFlagC = (*p_register & 0x01) != 0;
 
     *p_register = (*p_register >> 1) | (s_coreCpuFlagC ? 0x80 : 0x00);
+}
+
+static inline void coreCpuOpSbc(uint8_t p_value) {
+    int l_carry = s_coreCpuFlagC ? 1 : 0;
+
+    s_coreCpuFlagN = true;
+    s_coreCpuFlagH = (
+        (s_coreCpuRegisterAF.byte.high & 0x0f) - (p_value & 0x0f) - l_carry
+    ) < 0;
+    s_coreCpuFlagC = (s_coreCpuRegisterAF.byte.high - p_value - l_carry < 0);
+
+    s_coreCpuRegisterAF.byte.high -= p_value + l_carry;
+
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == 0;
+}
+
+static inline void coreCpuOpSub(uint8_t p_value) {
+    s_coreCpuFlagN = true;
+    s_coreCpuFlagH = (s_coreCpuRegisterAF.byte.high & 0x0f) < (p_value & 0x0f);
+    s_coreCpuFlagC = s_coreCpuRegisterAF.byte.high < p_value;
+
+    s_coreCpuRegisterAF.byte.high -= p_value;
+
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == 0;
+}
+
+static inline void coreCpuOpXor(uint8_t p_value) {
+    s_coreCpuRegisterAF.byte.high ^= p_value;
+
+    s_coreCpuFlagZ = s_coreCpuRegisterAF.byte.high == 0;
+    s_coreCpuFlagN = false;
+    s_coreCpuFlagH = false;
+    s_coreCpuFlagC = false;
 }
