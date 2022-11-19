@@ -300,6 +300,7 @@ void coreCpuStep(void) {
         case 0x20: // JR NZ, r8
             if(s_coreCpuFlagZ) {
                 coreBusCycle();
+                s_coreCpuRegisterPC += 1;
             } else {
                 s_coreCpuRegisterPC += (int8_t)coreCpuFetch8();
                 coreBusCycle();
@@ -350,6 +351,7 @@ void coreCpuStep(void) {
                 coreBusCycle();
             } else {
                 coreBusCycle();
+                s_coreCpuRegisterPC += 1;
             }
 
             break;
@@ -393,6 +395,7 @@ void coreCpuStep(void) {
         case 0x30: // JR NC, r8
             if(s_coreCpuFlagC) {
                 coreBusCycle();
+                s_coreCpuRegisterPC += 1;
             } else {
                 s_coreCpuRegisterPC += (int8_t)coreCpuFetch8();
                 coreBusCycle();
@@ -449,6 +452,7 @@ void coreCpuStep(void) {
                 coreBusCycle();
             } else {
                 coreBusCycle();
+                s_coreCpuRegisterPC += 1;
             }
 
             break;
@@ -1037,6 +1041,7 @@ void coreCpuStep(void) {
             if(s_coreCpuFlagZ) {
                 coreBusCycle();
                 coreBusCycle();
+                s_coreCpuRegisterPC += 2;
             } else {
                 uint16_t l_operand = coreCpuFetch16();
                 coreBusCycle();
@@ -2126,6 +2131,7 @@ void coreCpuStep(void) {
             } else {
                 coreBusCycle();
                 coreBusCycle();
+                s_coreCpuRegisterPC += 2;
             }
 
             break;
@@ -2180,6 +2186,7 @@ void coreCpuStep(void) {
             if(s_coreCpuFlagC) {
                 coreBusCycle();
                 coreBusCycle();
+                s_coreCpuRegisterPC += 2;
             } else {
                 uint16_t l_operand = coreCpuFetch16();
                 coreBusCycle();
@@ -2241,6 +2248,7 @@ void coreCpuStep(void) {
             } else {
                 coreBusCycle();
                 coreBusCycle();
+                s_coreCpuRegisterPC += 2;
             }
 
             break;
@@ -2462,8 +2470,8 @@ static inline uint16_t coreCpuPop(void) {
 }
 
 static inline void coreCpuPush(uint16_t p_value) {
-    coreBusWrite(s_coreCpuRegisterSP--, p_value);
-    coreBusWrite(s_coreCpuRegisterSP--, p_value >> 8);
+    coreBusWrite(--s_coreCpuRegisterSP, p_value >> 8);
+    coreBusWrite(--s_coreCpuRegisterSP, p_value);
 }
 
 static inline uint8_t coreCpuFetch8(void) {
