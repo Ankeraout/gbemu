@@ -48,6 +48,8 @@ static uint16_t s_coreCpuRegisterSP;
 static uint16_t s_coreCpuRegisterPC;
 static uint8_t s_coreCpuRegisterInterruptEnable;
 static uint8_t s_coreCpuRegisterInterruptFlag;
+static bool s_coreCpuRegisterInterruptMasterEnable;
+static bool s_coreCpuRegisterInterruptMasterEnableNextCycle;
 static bool s_coreCpuCheckInterrupts;
 
 static inline void coreCpuPrintState(void);
@@ -88,6 +90,8 @@ void coreCpuReset(void) {
     s_coreCpuRegisterPC = 0x0000;
     s_coreCpuRegisterInterruptEnable = 0x00;
     s_coreCpuRegisterInterruptFlag = 0x00;
+    s_coreCpuRegisterInterruptMasterEnable = false;
+    s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
     s_coreCpuCheckInterrupts = true;
 
     coreCpuPrintState();
@@ -96,6 +100,11 @@ void coreCpuReset(void) {
 void coreCpuStep(void) {
     if(s_coreCpuCheckInterrupts) {
         s_coreCpuCheckInterrupts = false;
+
+        if(s_coreCpuRegisterInterruptMasterEnableNextCycle) {
+            s_coreCpuRegisterInterruptMasterEnable = true;
+            s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
+        }
 
         uint8_t l_interrupts =
             s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
@@ -984,6 +993,388 @@ void coreCpuStep(void) {
 
         case 0xbf: // CP A, A
             coreCpuOpCp(s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xc0: // RET NZ
+            coreBusCycle();
+
+            if(!s_coreCpuFlagZ) {
+                s_coreCpuRegisterPC = coreCpuPop();
+                coreBusCycle();
+            }
+
+            break;
+
+        case 0xc1: // POP BC
+            s_coreCpuRegisterBC.word = coreCpuPop();
+            break;
+
+        case 0xc2: // JP NZ, a16
+            if(s_coreCpuFlagZ) {
+                coreBusCycle();
+                s_coreCpuRegisterPC += 2;
+            } else {
+                s_coreCpuRegisterPC = coreCpuFetch16();
+            }
+
+            coreBusCycle();
+
+            break;
+
+        case 0xc3: // JP a16
+            s_coreCpuRegisterPC = coreCpuFetch16();
+            coreBusCycle();
+            break;
+
+        case 0xc4: // CALL NZ, a16
+            if(s_coreCpuFlagZ) {
+                coreBusCycle();
+                coreBusCycle();
+            } else {
+                uint16_t l_operand = coreCpuFetch16();
+                coreBusCycle();
+                coreCpuPush(s_coreCpuRegisterPC);
+                s_coreCpuRegisterPC = l_operand;
+            }
+
+            break;
+
+        case 0xc5: // PUSH BC
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterBC.word);
+            break;
+
+        case 0xc6: // ADD a, d8
+            coreCpuOpAdd(coreCpuFetch8());
+            break;
+
+        case 0xc7: // RST 0x00
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x00;
+            break;
+
+        case 0xc8: // RET Z
+            coreBusCycle();
+
+            if(s_coreCpuFlagZ) {
+                s_coreCpuRegisterPC = coreCpuPop();
+                coreBusCycle();
+            }
+
+            break;
+
+        case 0xc9: // RET
+            s_coreCpuRegisterPC = coreCpuPop();
+            coreBusCycle();
+            break;
+
+        case 0xca: // JP Z, a16
+            if(s_coreCpuFlagZ) {
+                s_coreCpuRegisterPC = coreCpuFetch16();
+            } else {
+                coreBusCycle();
+                s_coreCpuRegisterPC += 2;
+            }
+
+            coreBusCycle();
+
+            break;
+
+        case 0xcb: // Prefix
+            // TODO
+            break;
+
+        case 0xcc: // CALL Z, a16
+            if(s_coreCpuFlagZ) {
+                uint16_t l_operand = coreCpuFetch16();
+                coreBusCycle();
+                coreCpuPush(s_coreCpuRegisterPC);
+                s_coreCpuRegisterPC = l_operand;
+            } else {
+                coreBusCycle();
+                coreBusCycle();
+            }
+
+            break;
+
+        case 0xcd: // CALL a16
+            {
+                uint16_t l_address = coreCpuFetch16();
+                coreBusCycle();
+                coreCpuPush(s_coreCpuRegisterPC);
+                s_coreCpuRegisterPC = l_address;
+            }
+
+            break;
+
+        case 0xce: // ADC A, d8
+            coreCpuOpAdc(coreCpuFetch8());
+            break;
+
+        case 0xcf: // RST 0x08
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x08;
+            break;
+
+        case 0xd0: // RET NC
+            coreBusCycle();
+
+            if(!s_coreCpuFlagC) {
+                s_coreCpuRegisterPC = coreCpuPop();
+                coreBusCycle();
+            }
+
+            break;
+
+        case 0xd1: // POP DE
+            s_coreCpuRegisterDE.word = coreCpuPop();
+            break;
+
+        case 0xd2: // JP NC, a16
+            if(s_coreCpuFlagC) {
+                coreBusCycle();
+                s_coreCpuRegisterPC += 2;
+            } else {
+                s_coreCpuRegisterPC = coreCpuFetch16();
+            }
+
+            coreBusCycle();
+
+            break;
+
+        case 0xd4: // CALL NC, a16
+            if(s_coreCpuFlagC) {
+                coreBusCycle();
+                coreBusCycle();
+            } else {
+                uint16_t l_operand = coreCpuFetch16();
+                coreBusCycle();
+                coreCpuPush(s_coreCpuRegisterPC);
+                s_coreCpuRegisterPC = l_operand;
+            }
+
+            break;
+
+        case 0xd5: // PUSH DE
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterDE.word);
+            break;
+
+        case 0xd6: // SUB A, d8
+            coreCpuOpSub(coreCpuFetch8());
+            break;
+
+        case 0xd7: // RST 0x10
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x10;
+            break;
+
+        case 0xd8: // RET C
+            coreBusCycle();
+
+            if(s_coreCpuFlagC) {
+                s_coreCpuRegisterPC = coreCpuPop();
+                coreBusCycle();
+            }
+
+            break;
+
+        case 0xd9: // RETI
+            s_coreCpuRegisterPC = coreCpuPop();
+            coreBusCycle();
+            s_coreCpuRegisterInterruptMasterEnable = true;
+            break;
+
+        case 0xda: // JP C, a16
+            if(s_coreCpuFlagC) {
+                s_coreCpuRegisterPC = coreCpuFetch16();
+            } else {
+                coreBusCycle();
+                s_coreCpuRegisterPC += 2;
+            }
+
+            coreBusCycle();
+
+            break;
+
+        case 0xdc: // CALL C, a16
+            if(s_coreCpuFlagC) {
+                uint16_t l_operand = coreCpuFetch16();
+                coreBusCycle();
+                coreCpuPush(s_coreCpuRegisterPC);
+                s_coreCpuRegisterPC = l_operand;
+            } else {
+                coreBusCycle();
+                coreBusCycle();
+            }
+
+            break;
+
+        case 0xde: // SBC A, d8
+            coreCpuOpSbc(coreCpuFetch8());
+            break;
+
+        case 0xdf: // RST 0x18
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x18;
+            break;
+
+        case 0xe0: // LDH (a8), A
+            coreBusWrite(0xff00 | coreCpuFetch8(), s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xe1: // POP HL
+            s_coreCpuRegisterHL.word = coreCpuPop();
+            break;
+
+        case 0xe2: // LDH (C), A
+            coreBusWrite(0xff00 | s_coreCpuRegisterBC.byte.low, s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xe5: // PUSH HL
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterHL.word);
+            break;
+
+        case 0xe6: // AND d8
+            coreCpuOpAnd(coreCpuFetch8());
+            break;
+
+        case 0xe7: // RST 0x20
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x20;
+            break;
+
+        case 0xe8: // ADD SP, r8
+            s_coreCpuFlagZ = false;
+            s_coreCpuFlagN = false;
+
+            {
+                uint8_t l_value = coreCpuFetch8();
+
+                s_coreCpuFlagH = (
+                    (s_coreCpuRegisterSP & 0x0f) + (l_value & 0x0f)
+                ) >= 0x10;
+                s_coreCpuFlagC = (
+                    (s_coreCpuRegisterSP & 0xff) + l_value
+                ) >= 0x100;
+
+                s_coreCpuRegisterSP += (int8_t)l_value;
+            }
+
+            coreBusCycle();
+            coreBusCycle();
+
+            break;
+
+        case 0xe9: // JP HL
+            s_coreCpuRegisterPC = s_coreCpuRegisterHL.word;
+            break;
+
+        case 0xea: // LD (a16), A
+            coreCpuWrite16(coreCpuFetch16(), s_coreCpuRegisterAF.byte.high);
+            break;
+
+        case 0xee: // XOR d8
+            coreCpuOpXor(coreCpuFetch8());
+            break;
+
+        case 0xef: // RST 0x28
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x28;
+            break;
+
+        case 0xf0: // LDH A, (a8)
+            s_coreCpuRegisterAF.byte.high = coreBusRead(0xff00 | coreCpuFetch8());
+            break;
+
+        case 0xf1: // POP AF
+            s_coreCpuRegisterAF.word = coreCpuPop();
+            s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.low & 0x80) != 0;
+            s_coreCpuFlagN = (s_coreCpuRegisterAF.byte.low & 0x40) != 0;
+            s_coreCpuFlagH = (s_coreCpuRegisterAF.byte.low & 0x20) != 0;
+            s_coreCpuFlagC = (s_coreCpuRegisterAF.byte.low & 0x10) != 0;
+            break;
+
+        case 0xf2: // LDH A, (C)
+            s_coreCpuRegisterAF.byte.high = coreBusRead(0xff00 | s_coreCpuRegisterBC.byte.low);
+            break;
+
+        case 0xf3: // DI
+            s_coreCpuRegisterInterruptMasterEnable = false;
+            s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
+            break;
+
+        case 0xf5: // PUSH AF
+            s_coreCpuRegisterAF.byte.low = (
+                (s_coreCpuFlagZ ? 0x80 : 0x00)
+                | (s_coreCpuFlagN ? 0x40 : 0x00)
+                | (s_coreCpuFlagH ? 0x20 : 0x00)
+                | (s_coreCpuFlagC ? 0x10 : 0x00)
+            );
+
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterAF.word);
+
+            break;
+
+        case 0xf6: // OR d8
+            coreCpuOpOr(coreCpuFetch8());
+            break;
+
+        case 0xf7: // RST 0x30
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x30;
+            break;
+
+        case 0xf8: // LD HL, SP + r8
+            s_coreCpuFlagZ = false;
+            s_coreCpuFlagN = false;
+
+            coreBusCycle();
+
+            {
+                uint8_t l_value = coreCpuFetch8();
+
+                s_coreCpuFlagH = (
+                    (s_coreCpuRegisterSP & 0x0f) + (l_value & 0x0f)
+                ) >= 0x10;
+                s_coreCpuFlagC = (
+                    (s_coreCpuRegisterSP & 0xff) + l_value
+                ) >= 0x100;
+            }
+
+            break;
+
+        case 0xf9: // LD SP, HL
+            coreBusCycle();
+            s_coreCpuRegisterSP = s_coreCpuRegisterHL.word;
+            break;
+
+        case 0xfa: // LD A, (a16)
+            s_coreCpuRegisterAF.byte.high = coreBusRead(coreCpuFetch16());
+            break;
+
+        case 0xfb: // EI
+            s_coreCpuRegisterInterruptEnable = false;
+            s_coreCpuRegisterInterruptMasterEnableNextCycle = true;
+            break;
+
+        case 0xfe: // CP d8
+            coreCpuOpCp(coreCpuFetch8());
+            break;
+
+        case 0xff: // RST 0x38
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = 0x38;
             break;
 
         default: // Freeze the CPU
