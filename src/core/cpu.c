@@ -112,6 +112,7 @@ void coreCpuStep(void) {
         if(s_coreCpuRegisterInterruptMasterEnableNextCycle) {
             s_coreCpuRegisterInterruptMasterEnable = true;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
+            s_coreCpuCheckInterrupts = true;
         }
 
         uint8_t l_interrupts =
@@ -2396,6 +2397,7 @@ void coreCpuStep(void) {
         case 0xfb: // EI
             s_coreCpuRegisterInterruptEnable = false;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = true;
+            s_coreCpuCheckInterrupts = true;
             break;
 
         case 0xfe: // CP d8

@@ -56,7 +56,7 @@ int main(int p_argc, char *p_argv[]) {
     coreSetRom(s_romData, s_romSize);
     coreReset();
 
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 32768; i++) {
         coreStep();
     }
 
