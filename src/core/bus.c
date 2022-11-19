@@ -38,9 +38,11 @@ void coreBusReset(void) {
     }
 
     // Cartridge ROM
+    const struct ts_coreCartridgeMapper *l_mapper = coreCartridgeGetMapper();
+
     for(uint16_t l_address = 0x0100; l_address <= 0x7fff; l_address++) {
-        s_coreBusReadFuncTable[l_address] = coreCartridgeReadRom;
-        s_coreBusWriteFuncTable[l_address] = coreCartridgeWriteRom;
+        s_coreBusReadFuncTable[l_address] = l_mapper->readRom;
+        s_coreBusWriteFuncTable[l_address] = l_mapper->writeRom;
     }
 
     // PPU VRAM
@@ -51,8 +53,8 @@ void coreBusReset(void) {
 
     // Cartridge SRAM
     for(uint16_t l_address = 0xa000; l_address <= 0xbfff; l_address++) {
-        s_coreBusReadFuncTable[l_address] = coreCartridgeReadSram;
-        s_coreBusWriteFuncTable[l_address] = coreCartridgeWriteSram;
+        s_coreBusReadFuncTable[l_address] = l_mapper->readRam;
+        s_coreBusWriteFuncTable[l_address] = l_mapper->writeRam;
     }
 
     // WRAM
@@ -145,10 +147,15 @@ static void coreBusWriteOpenBus(uint16_t p_address, uint8_t p_value) {
 }
 
 static void coreBusWriteBiosDisable(uint16_t p_address, uint8_t p_value) {
+    // The address is unused.
+    M_UNUSED_PARAMETER(p_address);
+
     if(p_value != 0) {
+        const struct ts_coreCartridgeMapper *l_mapper = coreCartridgeGetMapper();
+
         for(uint16_t l_address = 0x0000; l_address <= 0x00ff; l_address++) {
-            s_coreBusReadFuncTable[l_address] = coreCartridgeReadRom;
-            s_coreBusWriteFuncTable[l_address] = coreCartridgeWriteRom;
+            s_coreBusReadFuncTable[l_address] = l_mapper->readRom;
+            s_coreBusWriteFuncTable[l_address] = l_mapper->writeRom;
         }
     }
 }

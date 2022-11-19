@@ -53,7 +53,11 @@ int main(int p_argc, char *p_argv[]) {
     }
 
     coreSetBios(s_biosData);
-    coreSetRom(s_romData, s_romSize);
+
+    if(coreSetRom(s_romData, s_romSize) != 0) {
+        return 1;
+    }
+
     coreReset();
 
     for(int i = 0; i < 32768; i++) {
