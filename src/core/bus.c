@@ -130,7 +130,7 @@ void coreBusWrite(uint16_t p_address, uint8_t p_value) {
 }
 
 void coreBusCycle(void) {
-
+    corePpuCycle();
 }
 
 static uint8_t coreBusReadOpenBus(uint16_t p_address) {

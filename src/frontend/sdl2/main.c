@@ -12,6 +12,9 @@
 #define C_MAX_ROM_FILE_SIZE 8388608
 #define C_MAX_SRAM_FILE_SIZE 131072
 
+static SDL_Window *s_window;
+static SDL_Surface *s_bufferSurface;
+static int s_windowScale;
 static void *s_biosData;
 static void *s_romData;
 static size_t s_romSize;
@@ -48,6 +51,41 @@ int main(int p_argc, char *p_argv[]) {
         return 1;
     }
 
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0) {
+        fprintf(stderr, "Error: SDL initialization failed.\n");
+        return 1;
+    }
+
+    s_window = SDL_CreateWindow(
+        "gbemu",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        160 * s_windowScale,
+        144 * s_windowScale,
+        0
+    );
+
+    if(s_window == NULL) {
+        fprintf(stderr, "Error: SDL window creation failed.\n");
+        return 1;
+    }
+
+    s_bufferSurface = SDL_CreateRGBSurface(
+        0,
+        160,
+        144,
+        32,
+        0,
+        0,
+        0,
+        0
+    );
+
+    if(s_bufferSurface == NULL) {
+        fprintf(stderr, "Error: SDL buffer surface creation failed.\n");
+        return 1;
+    }
+
     if(coreInit() != 0) {
         return 1;
     }
@@ -60,11 +98,25 @@ int main(int p_argc, char *p_argv[]) {
 
     coreReset();
 
-    for(int i = 0; i < 32768; i++) {
+    while(true) {
         coreStep();
     }
 
     return 0;
+}
+
+void frontendRenderFrame(const uint32_t *p_frameBuffer) {
+    memcpy(s_bufferSurface->pixels, p_frameBuffer, 160 * 144 * 4);
+    SDL_BlitScaled(s_bufferSurface, NULL, SDL_GetWindowSurface(s_window), NULL);
+    SDL_UpdateWindowSurface(s_window);
+
+    SDL_Event l_event;
+
+    while(SDL_PollEvent(&l_event) == 1) {
+
+    }
+
+    SDL_Delay(16);
 }
 
 static void setDefaultConfiguration(
@@ -170,6 +222,8 @@ static int init(int p_argc, char *p_argv[]) {
     if(loadFiles(&l_configuration) != 0) {
         return 1;
     }
+
+    s_windowScale = l_configuration.a_screenScale;
 
     return 0;
 }
