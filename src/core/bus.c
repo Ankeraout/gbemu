@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdio.h>
 
 #include "common.h"
 #include "core/apu.h"
@@ -122,11 +123,17 @@ void coreBusReset(void) {
 }
 
 uint8_t coreBusRead(uint16_t p_address) {
-    return s_coreBusReadFuncTable[p_address](p_address);
+    uint8_t l_returnValue = s_coreBusReadFuncTable[p_address](p_address);
+
+    coreBusCycle();
+
+    return l_returnValue;
 }
 
 void coreBusWrite(uint16_t p_address, uint8_t p_value) {
     s_coreBusWriteFuncTable[p_address](p_address, p_value);
+
+    coreBusCycle();
 }
 
 void coreBusCycle(void) {
@@ -157,5 +164,7 @@ static void coreBusWriteBiosDisable(uint16_t p_address, uint8_t p_value) {
             s_coreBusReadFuncTable[l_address] = l_mapper->readRom;
             s_coreBusWriteFuncTable[l_address] = l_mapper->writeRom;
         }
+
+        printf("Info: BIOS disabled.\n");
     }
 }

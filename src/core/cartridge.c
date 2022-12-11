@@ -6,6 +6,7 @@
 
 #include "core/cartridge.h"
 #include "core/mappers/invalid.h"
+#include "core/mappers/mbc1.h"
 #include "core/mappers/none.h"
 
 static const uint8_t *s_coreCartridgeRomData;
@@ -108,6 +109,7 @@ const struct ts_coreCartridgeMapper *coreCartridgeGetMapper(void) {
 static const struct ts_coreCartridgeMapper *coreCartridgeDetermineMapper(void) {
     switch(s_coreCartridgeRomData[0x147]) {
         case 0x00: return &g_coreCartridgeMapperNone;
+        case 0x01: return &g_coreCartridgeMapperMbc1;
         default: return &g_coreCartridgeMapperInvalid;
     }
 }

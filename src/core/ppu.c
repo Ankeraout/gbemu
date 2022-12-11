@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #include "core/ppu.h"
 #include "frontend/frontend.h"
@@ -70,7 +69,7 @@ void corePpuReset(void) {
 
     corePpuWriteIo(0xff40, 0x00);
     corePpuWriteIo(0xff41, 0x00);
-    corePpuWriteIo(0xff47, 0x00);
+    corePpuWriteIo(0xff47, 0xd4);
     corePpuWriteIo(0xff48, 0x00);
     corePpuWriteIo(0xff49, 0x00);
 
@@ -222,13 +221,39 @@ static inline void corePpuUpdatePalette(
     }
 }
 
-static inline void corePpuDraw(void) {
-    // Draw background
-    int l_backgroundY = s_scy;
+// DEBUG
+static inline void corePpuDrawTileSet(void) {
     int l_pixelOffset = 0;
 
     for(int l_row = 0; l_row < 144; l_row++) {
-        int l_backgroundX = s_scx;
+        int l_bgMapY = l_row >> 3;
+        int l_bgTileY = l_row & 0x07;
+
+        for(int l_col = 0; l_col < 160; l_col++) {
+            int l_bgMapX = l_col >> 3;
+            int l_bgTileX = l_col & 0x07;
+            int l_tileNumber = (l_bgMapY << 5) | l_bgMapX;
+            int l_tileOffset = (l_tileNumber << 4) | (l_bgTileY << 1);
+
+            uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
+            uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
+            int l_shift = 7 - l_bgTileX;
+            int l_pixelLow = (l_tileLow >> l_shift) & 0x01;
+            int l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
+            int l_pixel = l_pixelLow | (l_pixelHigh << 1);
+
+            s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
+        }
+    }
+}
+
+static inline void corePpuDraw(void) {
+    // Draw background
+    uint8_t l_backgroundY = s_scy;
+    int l_pixelOffset = 0;
+
+    for(int l_row = 0; l_row < 144; l_row++) {
+        uint8_t l_backgroundX = s_scx;
         int l_bgMapY = l_backgroundY >> 3;
         int l_bgTileY = l_backgroundY & 0x07;
 
@@ -236,7 +261,8 @@ static inline void corePpuDraw(void) {
             int l_bgMapX = l_backgroundX >> 3;
             int l_bgTileX = l_backgroundX & 0x07;
             int l_bgMapOffset = s_bgTileMapOffset | (l_bgMapY << 5) | l_bgMapX;
-            int l_tileOffset = s_bgTileSetOffset | (l_bgTileY << 4) | (l_bgTileX << 1);
+            int l_tileNumber = s_corePpuVramData[l_bgMapOffset];
+            int l_tileOffset = s_bgTileSetOffset | (l_tileNumber << 4) | (l_bgTileY << 1);
 
             uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
             uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
@@ -252,9 +278,6 @@ static inline void corePpuDraw(void) {
 
         l_backgroundY++;
     }
-
-    printf("frame\n");
-    fflush(stdout);
 
     frontendRenderFrame(s_frameBuffer);
 }

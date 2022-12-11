@@ -119,17 +119,19 @@ void coreCpuStep(void) {
             s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
 
         if(l_interrupts != 0) {
-            coreBusCycle();
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = s_coreCpuInterruptJumpTable[l_interrupts];
-            s_coreCpuRegisterInterruptFlag &=
-                s_coreCpuInterruptFlagClearTable[l_interrupts];
-            coreBusCycle();
+            if(s_coreCpuRegisterInterruptMasterEnable) {
+                coreBusCycle();
+                coreBusCycle();
+                coreCpuPush(s_coreCpuRegisterPC);
+                s_coreCpuRegisterPC = s_coreCpuInterruptJumpTable[l_interrupts];
+                s_coreCpuRegisterInterruptFlag &=
+                    s_coreCpuInterruptFlagClearTable[l_interrupts];
+                coreBusCycle();
 
-            coreCpuPrintState();
+                coreCpuPrintState();
 
-            return; // Consider interrupt jump routine as a step
+                return; // Consider interrupt jump routine as a step
+            }
         }
     }
 

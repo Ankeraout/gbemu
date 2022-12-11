@@ -113,7 +113,14 @@ void frontendRenderFrame(const uint32_t *p_frameBuffer) {
     SDL_Event l_event;
 
     while(SDL_PollEvent(&l_event) == 1) {
+        switch(l_event.type) {
+            case SDL_WINDOWEVENT:
+                if(l_event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                    exit(0);
+                }
 
+                break;
+        }
     }
 
     SDL_Delay(16);
