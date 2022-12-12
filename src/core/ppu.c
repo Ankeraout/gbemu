@@ -52,6 +52,7 @@ static uint32_t s_objectPalette[2][4];
 static int s_ly;
 static int s_lx;
 static int s_mode;
+static int s_tileIdInverter;
 
 static inline void corePpuUpdatePalette(
     uint8_t p_paletteRegisterValue,
@@ -183,6 +184,7 @@ void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
         s_windowTileMapOffset = ((p_value & 0x40) == 0) ? 0x1800 : 0x1c00;
         s_windowEnable = (p_value & 0x20) != 0;
         s_bgTileSetOffset = ((p_value & 0x10) == 0) ? 0x0800 : 0x0000;
+        s_tileIdInverter = ((p_value & 0x10) == 0) ? 0x80 : 0x00;
         s_bgTileMapOffset = ((p_value & 0x08) == 0) ? 0x1800 : 0x1c00;
         s_objHeight = ((p_value & 0x04) == 0) ? 8 : 16;
         s_objEnable = (p_value & 0x02) != 0;
@@ -279,8 +281,8 @@ static inline void corePpuDraw(void) {
             int l_bgMapX = l_backgroundX >> 3;
             int l_bgTileX = l_backgroundX & 0x07;
             int l_bgMapOffset = s_bgTileMapOffset | (l_bgMapY << 5) | l_bgMapX;
-            int l_tileNumber = s_corePpuVramData[l_bgMapOffset];
-            int l_tileOffset = s_bgTileSetOffset | (l_tileNumber << 4) | (l_bgTileY << 1);
+            int l_tileNumber = s_corePpuVramData[l_bgMapOffset] ^ s_tileIdInverter;
+            int l_tileOffset = s_bgTileSetOffset + ((l_tileNumber << 4) | (l_bgTileY << 1));
 
             uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
             uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
