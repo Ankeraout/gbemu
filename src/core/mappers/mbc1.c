@@ -80,7 +80,11 @@ static uint8_t coreMapperMbc1ReadRom(uint16_t p_address) {
 }
 
 static uint8_t coreMapperMbc1ReadRam(uint16_t p_address) {
-    return s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask];
+    if(s_ramEnabled) {
+        return s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask];
+    } else {
+        return 0xff;
+    }
 }
 
 static void coreMapperMbc1WriteRom(uint16_t p_address, uint8_t p_value) {
@@ -113,7 +117,9 @@ static void coreMapperMbc1WriteRom(uint16_t p_address, uint8_t p_value) {
 }
 
 static void coreMapperMbc1WriteRam(uint16_t p_address, uint8_t p_value) {
-    s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask] = p_value;
+    if(s_ramEnabled) {
+        s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask] = p_value;
+    }
 }
 
 static void coreMapperMbc1RefreshBankOffset(void) {

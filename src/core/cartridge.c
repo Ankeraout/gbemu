@@ -110,6 +110,8 @@ static const struct ts_coreCartridgeMapper *coreCartridgeDetermineMapper(void) {
     switch(s_coreCartridgeRomData[0x147]) {
         case 0x00: return &g_coreCartridgeMapperNone;
         case 0x01: return &g_coreCartridgeMapperMbc1;
+        case 0x02: return &g_coreCartridgeMapperMbc1;
+        case 0x03: return &g_coreCartridgeMapperMbc1;
         default: return &g_coreCartridgeMapperInvalid;
     }
 }
