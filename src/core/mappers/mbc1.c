@@ -10,10 +10,12 @@ static size_t s_romSize;
 static uint8_t *s_ramData;
 static size_t s_ramSize;
 static uint16_t s_ramAddressMask;
+static uint32_t s_romAddressMask;
 static int s_romBankNumber;
 static int s_ramBankNumber;
 static int s_romOffsetLow;
 static int s_romOffsetHigh;
+static int s_ramOffset;
 static int s_bankingMode;
 static bool s_ramEnabled;
 
@@ -51,6 +53,7 @@ static int coreMapperMbc1Init(
     s_ramData = p_ramData;
     s_ramSize = p_ramSize;
     s_ramAddressMask = p_ramSize - 1;
+    s_romAddressMask = p_romSize - 1;
 
     return 0;
 }
@@ -72,12 +75,11 @@ static uint8_t coreMapperMbc1ReadRom(uint16_t p_address) {
         l_address |= s_romOffsetHigh;
     }
 
-    return s_romData[l_address];
+    return s_romData[l_address & s_romAddressMask];
 }
 
 static uint8_t coreMapperMbc1ReadRam(uint16_t p_address) {
-    // TODO
-    return 0xff;
+    return s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask];
 }
 
 static void coreMapperMbc1WriteRom(uint16_t p_address, uint8_t p_value) {
@@ -87,29 +89,40 @@ static void coreMapperMbc1WriteRom(uint16_t p_address, uint8_t p_value) {
             break;
 
         case 0x2000:
-            s_romBankNumber = p_value;
+            s_romBankNumber = p_value & 0x1f;
+
+            if(s_romBankNumber == 0) {
+                s_romBankNumber = 1;
+            }
+
             coreMapperMbc1RefreshBankOffset();
+
             break;
 
         case 0x4000:
-            s_ramBankNumber = p_value;
+            s_ramBankNumber = p_value & 0x03;
             coreMapperMbc1RefreshBankOffset();
             break;
 
         case 0x6000:
-            s_bankingMode = p_value;
+            s_bankingMode = p_value & 0x01;
             coreMapperMbc1RefreshBankOffset();
             break;
     }
 }
 
 static void coreMapperMbc1WriteRam(uint16_t p_address, uint8_t p_value) {
-    // TODO
+    s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask] = p_value;
 }
 
 static void coreMapperMbc1RefreshBankOffset(void) {
-    s_romOffsetLow = 0x0000;
-    s_romOffsetHigh = 0x4000;
+    if(s_bankingMode == 0) {
+        s_romOffsetLow = 0x0000;
+        s_ramOffset = 0x0000;
+    } else {
+        s_romOffsetLow = s_ramBankNumber << 19;
+        s_ramOffset = s_ramBankNumber << 13;
+    }
 
-    // TODO
+    s_romOffsetHigh = (s_ramBankNumber << 19) | (s_romBankNumber << 14);
 }

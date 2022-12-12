@@ -35,6 +35,16 @@ for l_bit in range(0, 8):
                 )
             )
         )
+        print(
+            "{:s}s_coreCpuFlagN = false;".format(
+                g_tab * (g_tabCount + 1)
+            )
+        )
+        print(
+            "{:s}s_coreCpuFlagH = true;".format(
+                g_tab * (g_tabCount + 1)
+            )
+        )
 
         print("{:s}break;".format(g_tab * (g_tabCount + 1)))
 

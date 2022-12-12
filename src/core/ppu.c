@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "core/cpu.h"
 #include "core/ppu.h"
 #include "frontend/frontend.h"
 
@@ -96,6 +97,10 @@ void corePpuCycle(void) {
             s_mode = E_CORE_PPU_MODE_DRAWING;
         } else if(s_lx == 252) {
             s_mode = E_CORE_PPU_MODE_HBLANK;
+
+            if(s_interruptEnableHblank) {
+                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+            }
         }
     }
 
@@ -103,15 +108,28 @@ void corePpuCycle(void) {
         s_ly++;
         s_lx = 0;
 
+        if((s_ly == s_lyc) && s_interruptEnableLyc) {
+            coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+        }
+
         if(s_ly == 144) {
             s_mode = E_CORE_PPU_MODE_VBLANK;
             corePpuDraw();
+            coreCpuRequestInterrupt(E_CPUINTERRUPT_VBLANK);
+
+            if(s_interruptEnableVblank) {
+                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+            }
         } else {
             if(s_ly == 154) {
                 s_ly = 0;
             }
 
             s_mode = E_CORE_PPU_MODE_OAMSCAN;
+
+            if(s_interruptEnableOam) {
+                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+            }
         }
     }
 }

@@ -27,13 +27,13 @@ static uint16_t s_coreCpuInterruptJumpTable[32] = {
 
 static uint16_t s_coreCpuInterruptFlagClearTable[32] = {
     0xff, 0xfe, 0xfd, 0xfe,
-    0xfc, 0xfe, 0xfd, 0xfe,
-    0xf8, 0xfe, 0xfd, 0xfe,
-    0xfc, 0xfe, 0xfd, 0xfe,
-    0xf0, 0xfe, 0xfd, 0xfe,
-    0xfc, 0xfe, 0xfd, 0xfe,
-    0xf8, 0xfe, 0xfd, 0xfe,
-    0xfc, 0xfe, 0xfd, 0xfe
+    0xfb, 0xfe, 0xfd, 0xfe,
+    0xf7, 0xfe, 0xfd, 0xfe,
+    0xfb, 0xfe, 0xfd, 0xfe,
+    0xef, 0xfe, 0xfd, 0xfe,
+    0xfb, 0xfe, 0xfd, 0xfe,
+    0xf7, 0xfe, 0xfd, 0xfe,
+    0xfb, 0xfe, 0xfd, 0xfe
 };
 
 static union tu_coreCpuRegisterPair s_coreCpuRegisterAF;
@@ -51,6 +51,8 @@ static uint8_t s_coreCpuRegisterInterruptFlag;
 static bool s_coreCpuRegisterInterruptMasterEnable;
 static bool s_coreCpuRegisterInterruptMasterEnableNextCycle;
 static bool s_coreCpuCheckInterrupts;
+static bool s_coreCpuHalted;
+static bool s_coreCpuStopped;
 
 static inline void coreCpuPrintState(void);
 static inline uint16_t coreCpuPop(void);
@@ -105,7 +107,20 @@ void coreCpuReset(void) {
     coreCpuPrintState();
 }
 
+void coreCpuRequestInterrupt(enum te_cpuInterrupt p_interrupt) {
+    s_coreCpuRegisterInterruptFlag |= 1 << p_interrupt;
+    s_coreCpuCheckInterrupts = true;
+
+    printf(
+        "Requested interrupt %d. IE=0x%02x, IF=0x%02x\n",
+        p_interrupt,
+        s_coreCpuRegisterInterruptEnable,
+        s_coreCpuRegisterInterruptFlag
+    );
+}
+
 void coreCpuStep(void) {
+    /*
     if(s_coreCpuCheckInterrupts) {
         s_coreCpuCheckInterrupts = false;
 
@@ -113,26 +128,61 @@ void coreCpuStep(void) {
             s_coreCpuRegisterInterruptMasterEnable = true;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
             s_coreCpuCheckInterrupts = true;
-        }
+        } else {
+            uint8_t l_interrupts =
+                s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
 
-        uint8_t l_interrupts =
-            s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
+            if(l_interrupts != 0) {
+                if(s_coreCpuRegisterInterruptMasterEnable) {
+                    coreBusCycle();
+                    coreBusCycle();
+                    coreCpuPush(s_coreCpuRegisterPC);
+                    s_coreCpuRegisterPC = s_coreCpuInterruptJumpTable[l_interrupts];
+                    s_coreCpuRegisterInterruptFlag &=
+                        s_coreCpuInterruptFlagClearTable[l_interrupts];
+                    coreBusCycle();
 
-        if(l_interrupts != 0) {
-            if(s_coreCpuRegisterInterruptMasterEnable) {
-                coreBusCycle();
-                coreBusCycle();
-                coreCpuPush(s_coreCpuRegisterPC);
-                s_coreCpuRegisterPC = s_coreCpuInterruptJumpTable[l_interrupts];
-                s_coreCpuRegisterInterruptFlag &=
-                    s_coreCpuInterruptFlagClearTable[l_interrupts];
-                coreBusCycle();
+                    printf("Info: CPU jumped to interrupt vector.\n");
+                    coreCpuPrintState();
 
-                coreCpuPrintState();
-
-                return; // Consider interrupt jump routine as a step
+                    return; // Consider interrupt jump routine as a step
+                }
             }
         }
+    }
+    */
+
+    uint8_t l_interrupts = s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
+
+    if(l_interrupts != 0) {
+        if(s_coreCpuHalted) {
+            s_coreCpuHalted = false;
+        }
+
+        if(s_coreCpuRegisterInterruptMasterEnable) {
+            coreBusCycle();
+            coreBusCycle();
+            coreCpuPush(s_coreCpuRegisterPC);
+            s_coreCpuRegisterPC = s_coreCpuInterruptJumpTable[l_interrupts];
+            s_coreCpuRegisterInterruptFlag &= s_coreCpuInterruptFlagClearTable[l_interrupts];
+            s_coreCpuRegisterInterruptMasterEnable = false;
+            s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
+
+            printf("Info: CPU jumped to interrupt vector.\n");
+            coreCpuPrintState();
+
+            return;
+        }
+    }
+
+    if(s_coreCpuRegisterInterruptMasterEnableNextCycle) {
+        s_coreCpuRegisterInterruptMasterEnable = true;
+        s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
+    }
+
+    if(s_coreCpuHalted) {
+        coreBusCycle();
+        return;
     }
 
     switch(coreCpuFetch8()) {
@@ -165,6 +215,7 @@ void coreCpuStep(void) {
         case 0x05: // DEC B
             s_coreCpuRegisterBC.byte.high =
                 coreCpuOpDec8(s_coreCpuRegisterBC.byte.high);
+
             break;
 
         case 0x06: // LD B, d8
@@ -217,7 +268,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x10: // STOP
-            // TODO
+            s_coreCpuStopped = true;
             break;
 
         case 0x11: // LD DE, d16
@@ -390,6 +441,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x2f: // CPL
+            s_coreCpuRegisterAF.byte.high = ~s_coreCpuRegisterAF.byte.high;
             s_coreCpuFlagN = true;
             s_coreCpuFlagH = true;
             break;
@@ -713,7 +765,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x76: // HALT
-            // TODO
+            s_coreCpuHalted = true;
             break;
 
         case 0x77: // LD (HL), A
@@ -1355,258 +1407,386 @@ void coreCpuStep(void) {
 
                 case 0x40: // BIT 0, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x41: // BIT 0, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x42: // BIT 0, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x43: // BIT 0, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x44: // BIT 0, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x45: // BIT 0, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x46: // BIT 0, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x47: // BIT 0, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 0)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x48: // BIT 1, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x49: // BIT 1, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x4a: // BIT 1, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x4b: // BIT 1, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x4c: // BIT 1, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x4d: // BIT 1, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x4e: // BIT 1, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x4f: // BIT 1, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 1)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x50: // BIT 2, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x51: // BIT 2, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x52: // BIT 2, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x53: // BIT 2, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x54: // BIT 2, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x55: // BIT 2, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x56: // BIT 2, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x57: // BIT 2, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 2)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x58: // BIT 3, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x59: // BIT 3, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x5a: // BIT 3, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x5b: // BIT 3, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x5c: // BIT 3, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x5d: // BIT 3, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x5e: // BIT 3, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x5f: // BIT 3, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 3)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x60: // BIT 4, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x61: // BIT 4, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x62: // BIT 4, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x63: // BIT 4, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x64: // BIT 4, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x65: // BIT 4, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x66: // BIT 4, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x67: // BIT 4, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 4)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x68: // BIT 5, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x69: // BIT 5, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x6a: // BIT 5, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x6b: // BIT 5, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x6c: // BIT 5, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x6d: // BIT 5, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x6e: // BIT 5, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x6f: // BIT 5, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 5)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x70: // BIT 6, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x71: // BIT 6, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x72: // BIT 6, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x73: // BIT 6, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x74: // BIT 6, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x75: // BIT 6, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x76: // BIT 6, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x77: // BIT 6, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 6)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x78: // BIT 7, B
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.high & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x79: // BIT 7, C
                     s_coreCpuFlagZ = (s_coreCpuRegisterBC.byte.low & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x7a: // BIT 7, D
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.high & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x7b: // BIT 7, E
                     s_coreCpuFlagZ = (s_coreCpuRegisterDE.byte.low & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x7c: // BIT 7, H
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.high & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x7d: // BIT 7, L
                     s_coreCpuFlagZ = (s_coreCpuRegisterHL.byte.low & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x7e: // BIT 7, (HL)
                     s_coreCpuFlagZ = (coreBusRead(s_coreCpuRegisterHL.word) & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x7f: // BIT 7, A
                     s_coreCpuFlagZ = (s_coreCpuRegisterAF.byte.high & (1 << 7)) == 0;
+                    s_coreCpuFlagN = false;
+                    s_coreCpuFlagH = true;
                     break;
 
                 case 0x80: // RES 0, B
@@ -2227,6 +2407,9 @@ void coreCpuStep(void) {
             s_coreCpuRegisterPC = coreCpuPop();
             coreBusCycle();
             s_coreCpuRegisterInterruptMasterEnable = true;
+
+            printf("Info: Re-enabled interrupts after RETI.\n");
+
             break;
 
         case 0xda: // JP C, a16
@@ -2319,7 +2502,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xea: // LD (a16), A
-            coreCpuWrite16(coreCpuFetch16(), s_coreCpuRegisterAF.byte.high);
+            coreBusWrite(coreCpuFetch16(), s_coreCpuRegisterAF.byte.high);
             break;
 
         case 0xee: // XOR d8
@@ -2351,6 +2534,9 @@ void coreCpuStep(void) {
         case 0xf3: // DI
             s_coreCpuRegisterInterruptMasterEnable = false;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
+
+            printf("Info: Disabling interrupts via DI opcode.\n");
+
             break;
 
         case 0xf5: // PUSH AF
@@ -2391,6 +2577,8 @@ void coreCpuStep(void) {
                 s_coreCpuFlagC = (
                     (s_coreCpuRegisterSP & 0xff) + l_value
                 ) >= 0x100;
+
+                s_coreCpuRegisterHL.word = s_coreCpuRegisterSP + (int8_t)l_value;
             }
 
             break;
@@ -2405,9 +2593,12 @@ void coreCpuStep(void) {
             break;
 
         case 0xfb: // EI
-            s_coreCpuRegisterInterruptEnable = false;
+            s_coreCpuRegisterInterruptMasterEnable = false;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = true;
             s_coreCpuCheckInterrupts = true;
+
+            printf("Info: Enabling interrupts via EI opcode at 0x%04x.\n", s_coreCpuRegisterPC - 1);
+
             break;
 
         case 0xfe: // CP d8
@@ -2427,7 +2618,7 @@ void coreCpuStep(void) {
             break;
     }
 
-    coreCpuPrintState();
+    //coreCpuPrintState();
 }
 
 uint8_t coreCpuRead(uint16_t p_address) {
@@ -2441,6 +2632,8 @@ uint8_t coreCpuRead(uint16_t p_address) {
 }
 
 void coreCpuWrite(uint16_t p_address, uint8_t p_value) {
+    printf("Info: CPU write 0x%02x to 0x%04x\n", p_value, p_address);
+
     if(p_address == 0xff0f) { // IF
         s_coreCpuRegisterInterruptFlag = p_value & 0x1f;
     } else if(p_address == 0xffff) { // IE
@@ -2585,11 +2778,12 @@ static inline void coreCpuOpDaa(void) {
 }
 
 static inline uint8_t coreCpuOpDec8(uint8_t p_value) {
+    s_coreCpuFlagN = true;
+    s_coreCpuFlagH = (p_value & 0x0f) == 0;
+
     p_value--;
 
     s_coreCpuFlagZ = p_value == 0;
-    s_coreCpuFlagN = true;
-    s_coreCpuFlagH = (p_value & 0x0f) == 0;
 
     return p_value;
 }
