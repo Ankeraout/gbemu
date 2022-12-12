@@ -19,10 +19,10 @@ static uint8_t s_corePpuVramData[C_PPU_VRAM_SIZE];
 static uint8_t s_corePpuOamData[C_PPU_OAM_SIZE];
 
 static const uint32_t s_screenPalette[4] = {
-    0x00000000,
-    0x55555555,
+    0xffffffff,
     0xaaaaaaaa,
-    0xffffffff
+    0x55555555,
+    0x00000000
 };
 
 static uint32_t s_frameBuffer[160 * 144];
@@ -70,7 +70,7 @@ void corePpuReset(void) {
 
     corePpuWriteIo(0xff40, 0x00);
     corePpuWriteIo(0xff41, 0x00);
-    corePpuWriteIo(0xff47, 0xd4);
+    corePpuWriteIo(0xff47, 0x00);
     corePpuWriteIo(0xff48, 0x00);
     corePpuWriteIo(0xff49, 0x00);
 
@@ -228,10 +228,10 @@ static inline void corePpuUpdatePalette(
     uint32_t *p_palette
 ) {
     int l_colorIndexes[4] = {
-        p_paletteRegisterValue >> 6,
-        (p_paletteRegisterValue >> 4) & 0x03,
-        (p_paletteRegisterValue >> 2) & 0x03,
         p_paletteRegisterValue & 0x03,
+        (p_paletteRegisterValue >> 2) & 0x03,
+        (p_paletteRegisterValue >> 4) & 0x03,
+        p_paletteRegisterValue >> 6,
     };
 
     for(int l_colorIndex = 0; l_colorIndex < 4; l_colorIndex++) {
