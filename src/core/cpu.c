@@ -320,7 +320,7 @@ void coreCpuStep(void) {
 
         case 0x1a: // LD A, (DE)
             s_coreCpuRegisterAF.byte.high =
-                coreCpuRead16(s_coreCpuRegisterDE.word);
+                coreBusRead(s_coreCpuRegisterDE.word);
 
             break;
 

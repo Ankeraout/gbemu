@@ -54,12 +54,13 @@ static int coreMapperMbc1Init(
     s_ramSize = p_ramSize;
     s_ramAddressMask = p_ramSize - 1;
     s_romAddressMask = p_romSize - 1;
+    coreMapperMbc1Reset();
 
     return 0;
 }
 
 static void coreMapperMbc1Reset(void) {
-    s_romBankNumber = 0;
+    s_romBankNumber = 1;
     s_ramBankNumber = 0;
     s_bankingMode = 0;
     s_ramEnabled = false;
