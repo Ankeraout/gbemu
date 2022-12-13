@@ -372,7 +372,7 @@ static inline void corePpuDraw(void) {
                 uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
                 uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset];
 
-                for(int l_tileX = 0; l_tileX < 8; l_tileX++) {
+                for(int l_tileX = 7; l_tileX >= 0; l_tileX--) {
                     uint8_t l_pixelLow = (l_tileLow >> l_tileX) & 0x01;
                     uint8_t l_pixelHigh = (l_tileHigh >> l_tileX) & 0x01;
                     uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
@@ -383,18 +383,28 @@ static inline void corePpuDraw(void) {
                 l_tileOffset += 2;
             }
 
-            // TODO: flip
-
             // Copy pixels into object layer
             for(int l_row = 0; l_row < s_objHeight; l_row++) {
-                int l_pixelY = l_spriteY + l_row;
+                int l_pixelY;
+
+                if(l_flipY) {
+                    l_pixelY = l_spriteY + (s_objHeight - 1) - l_row;
+                } else {
+                    l_pixelY = l_spriteY + l_row;
+                }
 
                 if((l_pixelY < 0) || (l_pixelY >= 144)) {
                     continue;
                 }
 
                 for(int l_col = 0; l_col < 8; l_col++) {
-                    int l_pixelX = l_spriteX + l_col;
+                    int l_pixelX;
+
+                    if(l_flipX) {
+                        l_pixelX = l_spriteX + 7 - l_col;
+                    } else {
+                        l_pixelX = l_spriteX + l_col;
+                    }
 
                     if((l_pixelX < 0) || (l_pixelX >= 160)) {
                         continue;
