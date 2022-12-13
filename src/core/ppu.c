@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "core/cpu.h"
 #include "core/ppu.h"
@@ -25,7 +26,6 @@ static const uint32_t s_screenPalette[4] = {
     0x00000000
 };
 
-static uint32_t s_frameBuffer[160 * 144];
 static uint8_t s_lcdc;
 static bool s_lcdEnable;
 static int s_windowTileMapOffset;
@@ -258,35 +258,13 @@ static inline void corePpuUpdatePalette(
     }
 }
 
-// DEBUG
-static inline void corePpuDrawTileSet(void) {
-    int l_pixelOffset = 0;
-
-    for(int l_row = 0; l_row < 144; l_row++) {
-        int l_bgMapY = l_row >> 3;
-        int l_bgTileY = l_row & 0x07;
-
-        for(int l_col = 0; l_col < 160; l_col++) {
-            int l_bgMapX = l_col >> 3;
-            int l_bgTileX = l_col & 0x07;
-            int l_tileNumber = (l_bgMapY << 5) | l_bgMapX;
-            int l_tileOffset = (l_tileNumber << 4) | (l_bgTileY << 1);
-
-            uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
-            uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
-            int l_shift = 7 - l_bgTileX;
-            int l_pixelLow = (l_tileLow >> l_shift) & 0x01;
-            int l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
-            int l_pixel = l_pixelLow | (l_pixelHigh << 1);
-
-            s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
-        }
-    }
-}
-
 static inline void corePpuDraw(void) {
-    // Draw background
+    int l_backgroundLayer[160 * 144];
+    int l_objectLayer[160 * 144];
+    uint32_t l_frameBuffer[160 * 144];
+
     if(s_bgWindowEnable) {
+        // Draw background
         uint8_t l_backgroundY = s_scy;
         int l_pixelOffset = 0;
 
@@ -309,59 +287,155 @@ static inline void corePpuDraw(void) {
                 uint8_t l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
                 uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
 
-                s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
+                l_backgroundLayer[l_pixelOffset++] = l_pixel;
 
                 l_backgroundX++;
             }
 
             l_backgroundY++;
         }
-    }
 
-    // Draw window
-    if(s_bgWindowEnable && s_windowEnable && s_wy <= 143 && s_wx <= 166) {
-        int l_windowY = -s_wy;
-        int l_pixelOffset = 0;
+        // Draw window
+        if(s_windowEnable && s_wy <= 143 && s_wx <= 166) {
+            int l_windowY = -s_wy;
+            int l_pixelOffset = 0;
 
-        for(int l_row = 0; l_row < 144; l_row++) {
-            if(l_windowY < 0) {
-                l_windowY++;
-                continue;
-            }
-
-            int l_windowX = 7 - s_wx;
-            int l_windowMapY = l_windowY >> 3;
-            int l_windowTileY = l_windowY & 0x07;
-
-            for(int l_col = 0; l_col < 160; l_col++) {
-                if(l_windowX < 0) {
-                    l_windowX++;
+            for(int l_row = 0; l_row < 144; l_row++) {
+                if(l_windowY < 0) {
+                    l_windowY++;
                     continue;
                 }
 
-                int l_windowMapX = l_windowX >> 3;
-                int l_windowTileX = l_windowX & 0x07;
-                int l_windowMapOffset = s_windowTileMapOffset | (l_windowMapY << 5) | l_windowMapX;
-                int l_tileNumber = s_corePpuVramData[l_windowMapOffset] ^ s_tileIdInverter;
-                int l_tileOffset = s_bgTileSetOffset + ((l_tileNumber << 4) | (l_windowTileY << 1));
+                int l_windowX = 7 - s_wx;
+                int l_windowMapY = l_windowY >> 3;
+                int l_windowTileY = l_windowY & 0x07;
 
-                uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
-                uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
-                uint8_t l_shift = 7 - l_windowTileX;
-                uint8_t l_pixelLow = (l_tileLow >> l_shift) & 0x01;
-                uint8_t l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
-                uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
+                for(int l_col = 0; l_col < 160; l_col++) {
+                    if(l_windowX < 0) {
+                        l_windowX++;
+                        continue;
+                    }
 
-                s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
+                    int l_windowMapX = l_windowX >> 3;
+                    int l_windowTileX = l_windowX & 0x07;
+                    int l_windowMapOffset = s_windowTileMapOffset | (l_windowMapY << 5) | l_windowMapX;
+                    int l_tileNumber = s_corePpuVramData[l_windowMapOffset] ^ s_tileIdInverter;
+                    int l_tileOffset = s_bgTileSetOffset + ((l_tileNumber << 4) | (l_windowTileY << 1));
 
-                l_windowX++;
+                    uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
+                    uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
+                    uint8_t l_shift = 7 - l_windowTileX;
+                    uint8_t l_pixelLow = (l_tileLow >> l_shift) & 0x01;
+                    uint8_t l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
+                    uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
+
+                    l_backgroundLayer[l_pixelOffset++] = l_pixel;
+
+                    l_windowX++;
+                }
+
+                l_windowY++;
+            }
+        }
+    } else {
+        memset(l_backgroundLayer, 0, sizeof(l_backgroundLayer));
+    }
+
+    // Draw sprites
+    if(s_objEnable) {
+        memset(l_objectLayer, 0, sizeof(l_objectLayer));
+
+        int l_oamOffset = 0;
+
+        for(int l_objectIndex = 0; l_objectIndex < 40; l_objectIndex++) {
+            // Decode OAM entry
+            int l_spriteY = s_corePpuOamData[l_oamOffset++] - 16;
+            int l_spriteX = s_corePpuOamData[l_oamOffset++] - 8;
+            uint8_t l_tileNumber = s_corePpuOamData[l_oamOffset++];
+            bool l_bgPriority = (s_corePpuOamData[l_oamOffset] & 0x80) != 0;
+            bool l_flipY = (s_corePpuOamData[l_oamOffset] & 0x40) != 0;
+            bool l_flipX = (s_corePpuOamData[l_oamOffset] & 0x20) != 0;
+            int l_paletteIndex = (s_corePpuOamData[l_oamOffset] & 0x10) >> 4;
+
+            l_oamOffset++;
+
+            if(s_objHeight == 16) {
+                l_tileNumber &= 0xfe;
             }
 
-            l_windowY++;
+            // Fetch and decode tile pixels
+            int l_tileBuffer[8 * s_objHeight];
+            int l_tileOffset = l_tileNumber << 4;
+            int l_tileBufferIndex = 0;
+
+            for(int l_tileY = 0; l_tileY < s_objHeight; l_tileY++) {
+                uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
+                uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset];
+
+                for(int l_tileX = 0; l_tileX < 8; l_tileX++) {
+                    uint8_t l_pixelLow = (l_tileLow >> l_tileX) & 0x01;
+                    uint8_t l_pixelHigh = (l_tileHigh >> l_tileX) & 0x01;
+                    uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
+
+                    l_tileBuffer[l_tileBufferIndex++] = l_pixel;
+                }
+
+                l_tileOffset += 2;
+            }
+
+            // TODO: flip
+
+            // Copy pixels into object layer
+            for(int l_row = 0; l_row < s_objHeight; l_row++) {
+                int l_pixelY = l_spriteY + l_row;
+
+                if((l_pixelY < 0) || (l_pixelY >= 144)) {
+                    continue;
+                }
+
+                for(int l_col = 0; l_col < 8; l_col++) {
+                    int l_pixelX = l_spriteX + l_col;
+
+                    if((l_pixelX < 0) || (l_pixelX >= 160)) {
+                        continue;
+                    }
+
+                    l_objectLayer[l_pixelY * 160 + l_pixelX] = l_tileBuffer[l_row * 8 + l_col];
+                }
+            }
+
+            // Merge background and object layers
+            if(l_bgPriority) {
+                for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
+                    int l_pixelBackground = l_backgroundLayer[l_pixelIndex];
+                    int l_pixelObject = l_objectLayer[l_pixelIndex];
+
+                    if((l_pixelObject == 0) || (l_pixelBackground != 0)) {
+                        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_pixelBackground];
+                    } else {
+                        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[0];
+                    }
+                }
+            } else {
+                for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
+                    int l_pixelBackground = l_backgroundLayer[l_pixelIndex];
+                    int l_pixelObject = l_objectLayer[l_pixelIndex];
+
+                    if(l_pixelObject == 0) {
+                        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_pixelBackground];
+                    } else {
+                        l_frameBuffer[l_pixelIndex] = s_objectPalette[l_paletteIndex][l_pixelObject];
+                    }
+                }
+            }
+        }
+    } else {
+        for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
+            l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_backgroundLayer[l_pixelIndex]];
         }
     }
 
-    frontendRenderFrame(s_frameBuffer);
+    frontendRenderFrame(l_frameBuffer);
 }
 
 void corePpuWriteOamDma(unsigned int p_index, uint8_t p_value) {
