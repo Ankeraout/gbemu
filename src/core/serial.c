@@ -32,6 +32,8 @@ void coreSerialCycle(void) {
             if(s_coreSerialTransferCounter == 8) {
                 s_coreSerialRegisterSc &= 0x7f;
                 s_coreSerialTransferring = false;
+
+                coreCpuRequestInterrupt(E_CPUINTERRUPT_SERIAL);
             }
         }
     }
