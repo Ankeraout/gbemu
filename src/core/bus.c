@@ -1,5 +1,4 @@
 #include <stdint.h>
-#include <stdio.h>
 
 #include "common.h"
 #include "core/apu.h"
@@ -190,7 +189,5 @@ static void coreBusWriteBiosDisable(uint16_t p_address, uint8_t p_value) {
             s_coreBusReadFuncTable[l_address] = l_mapper->readRom;
             s_coreBusWriteFuncTable[l_address] = l_mapper->writeRom;
         }
-
-        printf("Info: BIOS disabled.\n");
     }
 }

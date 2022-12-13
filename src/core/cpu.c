@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #include "core/bus.h"
 #include "core/cpu.h"
@@ -54,7 +53,6 @@ static bool s_coreCpuCheckInterrupts;
 static bool s_coreCpuHalted;
 static bool s_coreCpuStopped;
 
-static inline void coreCpuPrintState(void);
 static inline uint16_t coreCpuPop(void);
 static inline void coreCpuPush(uint16_t p_value);
 static inline uint8_t coreCpuFetch8(void);
@@ -103,55 +101,14 @@ void coreCpuReset(void) {
     s_coreCpuRegisterInterruptMasterEnable = false;
     s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
     s_coreCpuCheckInterrupts = true;
-
-    coreCpuPrintState();
 }
 
 void coreCpuRequestInterrupt(enum te_cpuInterrupt p_interrupt) {
     s_coreCpuRegisterInterruptFlag |= 1 << p_interrupt;
     s_coreCpuCheckInterrupts = true;
-
-    printf(
-        "Requested interrupt %d. IE=0x%02x, IF=0x%02x\n",
-        p_interrupt,
-        s_coreCpuRegisterInterruptEnable,
-        s_coreCpuRegisterInterruptFlag
-    );
 }
 
 void coreCpuStep(void) {
-    /*
-    if(s_coreCpuCheckInterrupts) {
-        s_coreCpuCheckInterrupts = false;
-
-        if(s_coreCpuRegisterInterruptMasterEnableNextCycle) {
-            s_coreCpuRegisterInterruptMasterEnable = true;
-            s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
-            s_coreCpuCheckInterrupts = true;
-        } else {
-            uint8_t l_interrupts =
-                s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
-
-            if(l_interrupts != 0) {
-                if(s_coreCpuRegisterInterruptMasterEnable) {
-                    coreBusCycle();
-                    coreBusCycle();
-                    coreCpuPush(s_coreCpuRegisterPC);
-                    s_coreCpuRegisterPC = s_coreCpuInterruptJumpTable[l_interrupts];
-                    s_coreCpuRegisterInterruptFlag &=
-                        s_coreCpuInterruptFlagClearTable[l_interrupts];
-                    coreBusCycle();
-
-                    printf("Info: CPU jumped to interrupt vector.\n");
-                    coreCpuPrintState();
-
-                    return; // Consider interrupt jump routine as a step
-                }
-            }
-        }
-    }
-    */
-
     uint8_t l_interrupts = s_coreCpuRegisterInterruptEnable & s_coreCpuRegisterInterruptFlag;
 
     if(l_interrupts != 0) {
@@ -167,9 +124,6 @@ void coreCpuStep(void) {
             s_coreCpuRegisterInterruptFlag &= s_coreCpuInterruptFlagClearTable[l_interrupts];
             s_coreCpuRegisterInterruptMasterEnable = false;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
-
-            printf("Info: CPU jumped to interrupt vector.\n");
-            coreCpuPrintState();
 
             return;
         }
@@ -2408,8 +2362,6 @@ void coreCpuStep(void) {
             coreBusCycle();
             s_coreCpuRegisterInterruptMasterEnable = true;
 
-            printf("Info: Re-enabled interrupts after RETI.\n");
-
             break;
 
         case 0xda: // JP C, a16
@@ -2535,8 +2487,6 @@ void coreCpuStep(void) {
             s_coreCpuRegisterInterruptMasterEnable = false;
             s_coreCpuRegisterInterruptMasterEnableNextCycle = false;
 
-            printf("Info: Disabling interrupts via DI opcode.\n");
-
             break;
 
         case 0xf5: // PUSH AF
@@ -2597,8 +2547,6 @@ void coreCpuStep(void) {
             s_coreCpuRegisterInterruptMasterEnableNextCycle = true;
             s_coreCpuCheckInterrupts = true;
 
-            printf("Info: Enabling interrupts via EI opcode at 0x%04x.\n", s_coreCpuRegisterPC - 1);
-
             break;
 
         case 0xfe: // CP d8
@@ -2632,8 +2580,6 @@ uint8_t coreCpuRead(uint16_t p_address) {
 }
 
 void coreCpuWrite(uint16_t p_address, uint8_t p_value) {
-    printf("Info: CPU write 0x%02x to 0x%04x\n", p_value, p_address);
-
     if(p_address == 0xff0f) { // IF
         s_coreCpuRegisterInterruptFlag = p_value & 0x1f;
     } else if(p_address == 0xffff) { // IE
@@ -2641,18 +2587,6 @@ void coreCpuWrite(uint16_t p_address, uint8_t p_value) {
     }
 
     s_coreCpuCheckInterrupts = true;
-}
-
-static inline void coreCpuPrintState(void) {
-    printf(
-        "PC=0x%04x AF=0x%04x BC=0x%04x DE=0x%04x HL=0x%04x SP=0x%04x\n",
-        s_coreCpuRegisterPC,
-        s_coreCpuRegisterAF.word,
-        s_coreCpuRegisterBC.word,
-        s_coreCpuRegisterDE.word,
-        s_coreCpuRegisterHL.word,
-        s_coreCpuRegisterSP
-    );
 }
 
 static inline uint16_t coreCpuPop(void) {

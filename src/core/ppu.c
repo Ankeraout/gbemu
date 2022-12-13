@@ -312,6 +312,7 @@ static inline void corePpuDraw(void) {
                 for(int l_col = 0; l_col < 160; l_col++) {
                     if(l_windowX < 0) {
                         l_windowX++;
+                        l_pixelOffset++;
                         continue;
                     }
 
@@ -427,7 +428,6 @@ static inline void corePpuDraw(void) {
                 }
             }
         }
-    } else {
     }
 
     frontendRenderFrame(l_frameBuffer);
