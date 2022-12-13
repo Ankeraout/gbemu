@@ -103,7 +103,17 @@ void coreBusReset(void) {
     }
 
     // PPU I/O
-    for(uint16_t l_address = 0xff40; l_address <= 0xff4b; l_address++) {
+    for(uint16_t l_address = 0xff40; l_address <= 0xff45; l_address++) {
+        s_coreBusReadFuncTable[l_address] = corePpuReadIo;
+        s_coreBusWriteFuncTable[l_address] = corePpuWriteIo;
+    }
+
+    // OAM DMA
+    s_coreBusReadFuncTable[0xff46] = coreDmaRead;
+    s_coreBusWriteFuncTable[0xff46] = coreDmaWrite;
+
+    // PPU I/O
+    for(uint16_t l_address = 0xff47; l_address <= 0xff4b; l_address++) {
         s_coreBusReadFuncTable[l_address] = corePpuReadIo;
         s_coreBusWriteFuncTable[l_address] = corePpuWriteIo;
     }
@@ -123,20 +133,34 @@ void coreBusReset(void) {
 }
 
 uint8_t coreBusRead(uint16_t p_address) {
-    uint8_t l_returnValue = s_coreBusReadFuncTable[p_address](p_address);
+    uint8_t l_returnValue;
+
+    if(coreDmaIsRunning() && ((p_address & 0xff80) != 0xff80)) {
+        l_returnValue = 0xff;
+    } else {
+        l_returnValue = s_coreBusReadFuncTable[p_address](p_address);
+    }
 
     coreBusCycle();
 
     return l_returnValue;
 }
 
+uint8_t coreBusReadDma(uint16_t p_address) {
+    return s_coreBusReadFuncTable[p_address](p_address);
+}
+
 void coreBusWrite(uint16_t p_address, uint8_t p_value) {
-    s_coreBusWriteFuncTable[p_address](p_address, p_value);
+    if(!coreDmaIsRunning() || ((p_address & 0xff80) == 0xff80)) {
+        s_coreBusWriteFuncTable[p_address](p_address, p_value);
+    }
 
     coreBusCycle();
 }
 
 void coreBusCycle(void) {
+    coreDmaCycle();
+    coreCartridgeCycle();
     corePpuCycle();
     coreTimerCycle();
 }

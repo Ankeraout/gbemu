@@ -301,3 +301,7 @@ static inline void corePpuDraw(void) {
 
     frontendRenderFrame(s_frameBuffer);
 }
+
+void corePpuWriteOamDma(unsigned int p_index, uint8_t p_value) {
+    s_corePpuOamData[p_index] = p_value;
+}

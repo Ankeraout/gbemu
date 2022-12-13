@@ -10,5 +10,6 @@ uint8_t coreBusRead(uint16_t p_address);
 void coreBusWrite(uint16_t p_address, uint8_t p_value);
 void coreBusCycle(void);
 void coreBusSetMapper(struct ts_coreCartridgeMapper *p_mapper);
+uint8_t coreBusReadDma(uint16_t p_address);
 
 #endif

@@ -11,5 +11,6 @@ uint8_t corePpuReadOam(uint16_t p_address);
 void corePpuWriteIo(uint16_t p_address, uint8_t p_value);
 void corePpuWriteVram(uint16_t p_address, uint8_t p_value);
 void corePpuWriteOam(uint16_t p_address, uint8_t p_value);
+void corePpuWriteOamDma(unsigned int p_index, uint8_t p_value);
 
 #endif
