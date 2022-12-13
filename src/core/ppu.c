@@ -170,11 +170,20 @@ uint8_t corePpuReadIo(uint16_t p_address) {
 }
 
 uint8_t corePpuReadVram(uint16_t p_address) {
-    return s_corePpuVramData[p_address & 0x1fff];
+    if(s_mode != E_CORE_PPU_MODE_DRAWING) {
+        return s_corePpuVramData[p_address & 0x1fff];
+    } else {
+        return 0xff;
+    }
 }
 
 uint8_t corePpuReadOam(uint16_t p_address) {
-    return s_corePpuOamData[p_address & 0x00ff];
+    if((s_mode & 0x02) == 0) {
+        // VBlank or HBlank
+        return s_corePpuOamData[p_address & 0x00ff];
+    } else {
+        return 0xff;
+    }
 }
 
 void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
@@ -218,11 +227,16 @@ void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
 }
 
 void corePpuWriteVram(uint16_t p_address, uint8_t p_value) {
-    s_corePpuVramData[p_address & 0x1fff] = p_value;
+    if(s_mode != E_CORE_PPU_MODE_DRAWING) {
+        s_corePpuVramData[p_address & 0x1fff] = p_value;
+    }
 }
 
 void corePpuWriteOam(uint16_t p_address, uint8_t p_value) {
-    s_corePpuOamData[p_address & 0x00ff] = p_value;
+    if((s_mode & 0x02) == 0) {
+        // VBlank or HBlank
+        s_corePpuOamData[p_address & 0x00ff] = p_value;
+    }
 }
 
 static inline void corePpuUpdatePalette(
