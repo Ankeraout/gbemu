@@ -159,9 +159,10 @@ void coreBusWrite(uint16_t p_address, uint8_t p_value) {
 }
 
 void coreBusCycle(void) {
-    coreDmaCycle();
     coreCartridgeCycle();
+    coreDmaCycle();
     corePpuCycle();
+    coreSerialCycle();
     coreTimerCycle();
 }
 
