@@ -5,8 +5,16 @@
 #include <string.h>
 
 #include "core/cartridge.h"
+#include "core/mappers/h161.h"
+#include "core/mappers/huc1.h"
+#include "core/mappers/huc3.h"
 #include "core/mappers/invalid.h"
 #include "core/mappers/mbc1.h"
+#include "core/mappers/mbc2.h"
+#include "core/mappers/mbc3.h"
+#include "core/mappers/mbc5.h"
+#include "core/mappers/mbc7.h"
+#include "core/mappers/mmm01.h"
 #include "core/mappers/none.h"
 
 static const uint8_t *s_coreCartridgeRomData;
@@ -26,7 +34,15 @@ static bool coreCartridgeIsRomSizeCorrect(void);
 static bool coreCartridgeIsRamSizeCorrect(void);
 
 void coreCartridgeReset(void) {
-    s_coreCartridgeMapper->reset();
+    if(s_coreCartridgeMapper->reset != NULL) {
+        s_coreCartridgeMapper->reset();
+    }
+}
+
+void coreCartridgeCycle(void) {
+    if(s_coreCartridgeMapper->cycle != NULL) {
+        s_coreCartridgeMapper->cycle();
+    }
 }
 
 int coreCartridgeSetRom(const void *p_rom, size_t p_size) {
@@ -112,6 +128,17 @@ static const struct ts_coreCartridgeMapper *coreCartridgeDetermineMapper(void) {
         case 0x01: return &g_coreCartridgeMapperMbc1;
         case 0x02: return &g_coreCartridgeMapperMbc1;
         case 0x03: return &g_coreCartridgeMapperMbc1;
+        case 0x0f: return &g_coreCartridgeMapperMbc3;
+        case 0x10: return &g_coreCartridgeMapperMbc3;
+        case 0x11: return &g_coreCartridgeMapperMbc3;
+        case 0x12: return &g_coreCartridgeMapperMbc3;
+        case 0x13: return &g_coreCartridgeMapperMbc3;
+        case 0x19: return &g_coreCartridgeMapperMbc5;
+        case 0x1a: return &g_coreCartridgeMapperMbc5;
+        case 0x1b: return &g_coreCartridgeMapperMbc5;
+        case 0x1c: return &g_coreCartridgeMapperMbc5;
+        case 0x1d: return &g_coreCartridgeMapperMbc5;
+        case 0x1e: return &g_coreCartridgeMapperMbc5;
         default: return &g_coreCartridgeMapperInvalid;
     }
 }

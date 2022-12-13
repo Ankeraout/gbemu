@@ -16,7 +16,6 @@ static int coreMapperNoneInit(
     uint8_t *p_ramData,
     size_t p_ramSize
 );
-static void coreMapperNoneReset(void);
 static uint8_t coreMapperNoneReadRom(uint16_t p_address);
 static uint8_t coreMapperNoneReadRam(uint16_t p_address);
 static void coreMapperNoneWriteRom(uint16_t p_address, uint8_t p_value);
@@ -25,7 +24,8 @@ static void coreMapperNoneWriteRam(uint16_t p_address, uint8_t p_value);
 const struct ts_coreCartridgeMapper g_coreCartridgeMapperNone = {
     .name = "None",
     .init = coreMapperNoneInit,
-    .reset = coreMapperNoneReset,
+    .reset = NULL,
+    .cycle = NULL,
     .readRam = coreMapperNoneReadRam,
     .readRom = coreMapperNoneReadRom,
     .writeRam = coreMapperNoneWriteRam,
@@ -45,10 +45,6 @@ static int coreMapperNoneInit(
     s_ramAddressMask = p_ramSize - 1;
 
     return 0;
-}
-
-static void coreMapperNoneReset(void) {
-
 }
 
 static uint8_t coreMapperNoneReadRom(uint16_t p_address) {

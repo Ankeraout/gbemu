@@ -13,6 +13,7 @@ typedef int (*t_coreCartridgeMapperInitFunc)(
     size_t p_ramSize
 );
 typedef void (*t_coreCartridgeMapperResetFunc)(void);
+typedef void (*t_coreCartridgeMapperCycleFunc)(void);
 typedef uint8_t (*t_coreCartridgeMapperReadFunc)(uint16_t p_address);
 typedef void (*t_coreCartridgeMapperWriteFunc)(
     uint16_t p_address,
@@ -23,6 +24,7 @@ struct ts_coreCartridgeMapper {
     char *name;
     t_coreCartridgeMapperInitFunc init;
     t_coreCartridgeMapperResetFunc reset;
+    t_coreCartridgeMapperCycleFunc cycle;
     t_coreCartridgeMapperReadFunc readRom;
     t_coreCartridgeMapperReadFunc readRam;
     t_coreCartridgeMapperWriteFunc writeRom;
@@ -30,6 +32,7 @@ struct ts_coreCartridgeMapper {
 };
 
 void coreCartridgeReset(void);
+void coreCartridgeCycle(void);
 int coreCartridgeSetRom(const void *p_rom, size_t p_size);
 const struct ts_coreCartridgeMapper *coreCartridgeGetMapper(void);
 

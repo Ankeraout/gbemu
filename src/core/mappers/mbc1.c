@@ -36,6 +36,7 @@ const struct ts_coreCartridgeMapper g_coreCartridgeMapperMbc1 = {
     .name = "MBC1",
     .init = coreMapperMbc1Init,
     .reset = coreMapperMbc1Reset,
+    .cycle = NULL,
     .readRam = coreMapperMbc1ReadRam,
     .readRom = coreMapperMbc1ReadRom,
     .writeRam = coreMapperMbc1WriteRam,

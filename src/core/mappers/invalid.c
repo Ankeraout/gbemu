@@ -10,7 +10,6 @@ static int coreMapperInvalidInit(
     uint8_t *p_ramData,
     size_t p_ramSize
 );
-static void coreMapperInvalidReset(void);
 static uint8_t coreMapperInvalidReadRom(uint16_t p_address);
 static uint8_t coreMapperInvalidReadRam(uint16_t p_address);
 static void coreMapperInvalidWriteRom(uint16_t p_address, uint8_t p_value);
@@ -19,7 +18,8 @@ static void coreMapperInvalidWriteRam(uint16_t p_address, uint8_t p_value);
 const struct ts_coreCartridgeMapper g_coreCartridgeMapperInvalid = {
     .name = "Invalid",
     .init = coreMapperInvalidInit,
-    .reset = coreMapperInvalidReset,
+    .reset = NULL,
+    .cycle = NULL,
     .readRam = coreMapperInvalidReadRam,
     .readRom = coreMapperInvalidReadRom,
     .writeRam = coreMapperInvalidWriteRam,
@@ -38,10 +38,6 @@ static int coreMapperInvalidInit(
     M_UNUSED_PARAMETER(p_ramSize);
 
     return 0;
-}
-
-static void coreMapperInvalidReset(void) {
-
 }
 
 static uint8_t coreMapperInvalidReadRom(uint16_t p_address) {
