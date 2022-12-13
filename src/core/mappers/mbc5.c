@@ -64,13 +64,13 @@ static uint8_t coreMapperMbc5ReadRom(uint16_t p_address) {
     if((p_address & 0x4000) == 0) {
         return s_romData[p_address];
     } else {
-        return s_romData[s_romOffset | (p_address & 0x3fff)];
+        return s_romData[(s_romOffset | (p_address & 0x3fff)) & s_romAddressMask];
     }
 }
 
 static uint8_t coreMapperMbc5ReadRam(uint16_t p_address) {
     if(s_ramEnabled) {
-        return s_ramData[s_ramOffset | (p_address & 0x1fff)];
+        return s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask];
     } else {
         return 0xff;
     }
@@ -100,6 +100,6 @@ static void coreMapperMbc5WriteRom(uint16_t p_address, uint8_t p_value) {
 
 static void coreMapperMbc5WriteRam(uint16_t p_address, uint8_t p_value) {
     if(s_ramEnabled) {
-        s_ramData[s_ramOffset | (p_address & 0x1fff)] = p_value;;
+        s_ramData[(s_ramOffset | (p_address & 0x1fff)) & s_ramAddressMask] = p_value;
     }
 }
