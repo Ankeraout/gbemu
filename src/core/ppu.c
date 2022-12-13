@@ -59,6 +59,8 @@ static inline void corePpuUpdatePalette(
     uint32_t *p_palette
 );
 static inline void corePpuDraw(void);
+static inline bool corePpuCanAccessVram(void);
+static inline bool corePpuCanAccessOam(void);
 
 void corePpuReset(void) {
     for(int l_vramOffset = 0; l_vramOffset < C_PPU_VRAM_SIZE; l_vramOffset++) {
@@ -85,11 +87,12 @@ void corePpuReset(void) {
 }
 
 void corePpuCycle(void) {
-    /*if(!s_lcdEnable) {
+    if(!s_lcdEnable) {
         s_lx = 0;
-        s_ly = 0;
+        s_ly = 144;
+        s_mode = E_CORE_PPU_MODE_VBLANK;
         return;
-    }*/
+    }
 
     s_lx += 4;
 
@@ -170,7 +173,7 @@ uint8_t corePpuReadIo(uint16_t p_address) {
 }
 
 uint8_t corePpuReadVram(uint16_t p_address) {
-    if(s_mode != E_CORE_PPU_MODE_DRAWING) {
+    if(corePpuCanAccessVram()) {
         return s_corePpuVramData[p_address & 0x1fff];
     } else {
         return 0xff;
@@ -178,7 +181,7 @@ uint8_t corePpuReadVram(uint16_t p_address) {
 }
 
 uint8_t corePpuReadOam(uint16_t p_address) {
-    if((s_mode & 0x02) == 0) {
+    if(corePpuCanAccessOam()) {
         // VBlank or HBlank
         return s_corePpuOamData[p_address & 0x00ff];
     } else {
@@ -189,7 +192,7 @@ uint8_t corePpuReadOam(uint16_t p_address) {
 void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
     if(p_address == 0xff40) {
         s_lcdc = p_value;
-        s_lcdEnable = true;
+        s_lcdEnable = (p_value & 0x80) != 0;
         s_windowTileMapOffset = ((p_value & 0x40) == 0) ? 0x1800 : 0x1c00;
         s_windowEnable = (p_value & 0x20) != 0;
         s_bgTileSetOffset = ((p_value & 0x10) == 0) ? 0x0800 : 0x0000;
@@ -227,13 +230,13 @@ void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
 }
 
 void corePpuWriteVram(uint16_t p_address, uint8_t p_value) {
-    if(s_mode != E_CORE_PPU_MODE_DRAWING) {
+    if(corePpuCanAccessVram()) {
         s_corePpuVramData[p_address & 0x1fff] = p_value;
     }
 }
 
 void corePpuWriteOam(uint16_t p_address, uint8_t p_value) {
-    if((s_mode & 0x02) == 0) {
+    if(corePpuCanAccessOam()) {
         // VBlank or HBlank
         s_corePpuOamData[p_address & 0x00ff] = p_value;
     }
@@ -283,34 +286,79 @@ static inline void corePpuDrawTileSet(void) {
 
 static inline void corePpuDraw(void) {
     // Draw background
-    uint8_t l_backgroundY = s_scy;
-    int l_pixelOffset = 0;
+    if(s_bgWindowEnable) {
+        uint8_t l_backgroundY = s_scy;
+        int l_pixelOffset = 0;
 
-    for(int l_row = 0; l_row < 144; l_row++) {
-        uint8_t l_backgroundX = s_scx;
-        int l_bgMapY = l_backgroundY >> 3;
-        int l_bgTileY = l_backgroundY & 0x07;
+        for(int l_row = 0; l_row < 144; l_row++) {
+            uint8_t l_backgroundX = s_scx;
+            int l_bgMapY = l_backgroundY >> 3;
+            int l_bgTileY = l_backgroundY & 0x07;
 
-        for(int l_col = 0; l_col < 160; l_col++) {
-            int l_bgMapX = l_backgroundX >> 3;
-            int l_bgTileX = l_backgroundX & 0x07;
-            int l_bgMapOffset = s_bgTileMapOffset | (l_bgMapY << 5) | l_bgMapX;
-            int l_tileNumber = s_corePpuVramData[l_bgMapOffset] ^ s_tileIdInverter;
-            int l_tileOffset = s_bgTileSetOffset + ((l_tileNumber << 4) | (l_bgTileY << 1));
+            for(int l_col = 0; l_col < 160; l_col++) {
+                int l_bgMapX = l_backgroundX >> 3;
+                int l_bgTileX = l_backgroundX & 0x07;
+                int l_bgMapOffset = s_bgTileMapOffset | (l_bgMapY << 5) | l_bgMapX;
+                int l_tileNumber = s_corePpuVramData[l_bgMapOffset] ^ s_tileIdInverter;
+                int l_tileOffset = s_bgTileSetOffset + ((l_tileNumber << 4) | (l_bgTileY << 1));
 
-            uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
-            uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
-            uint8_t l_shift = 7 - l_bgTileX;
-            uint8_t l_pixelLow = (l_tileLow >> l_shift) & 0x01;
-            uint8_t l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
-            uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
+                uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
+                uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
+                uint8_t l_shift = 7 - l_bgTileX;
+                uint8_t l_pixelLow = (l_tileLow >> l_shift) & 0x01;
+                uint8_t l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
+                uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
 
-            s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
+                s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
 
-            l_backgroundX++;
+                l_backgroundX++;
+            }
+
+            l_backgroundY++;
         }
+    }
 
-        l_backgroundY++;
+    // Draw window
+    if(s_bgWindowEnable && s_windowEnable && s_wy <= 143 && s_wx <= 166) {
+        int l_windowY = -s_wy;
+        int l_pixelOffset = 0;
+
+        for(int l_row = 0; l_row < 144; l_row++) {
+            if(l_windowY < 0) {
+                l_windowY++;
+                continue;
+            }
+
+            int l_windowX = 7 - s_wx;
+            int l_windowMapY = l_windowY >> 3;
+            int l_windowTileY = l_windowY & 0x07;
+
+            for(int l_col = 0; l_col < 160; l_col++) {
+                if(l_windowX < 0) {
+                    l_windowX++;
+                    continue;
+                }
+
+                int l_windowMapX = l_windowX >> 3;
+                int l_windowTileX = l_windowX & 0x07;
+                int l_windowMapOffset = s_windowTileMapOffset | (l_windowMapY << 5) | l_windowMapX;
+                int l_tileNumber = s_corePpuVramData[l_windowMapOffset] ^ s_tileIdInverter;
+                int l_tileOffset = s_bgTileSetOffset + ((l_tileNumber << 4) | (l_windowTileY << 1));
+
+                uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
+                uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
+                uint8_t l_shift = 7 - l_windowTileX;
+                uint8_t l_pixelLow = (l_tileLow >> l_shift) & 0x01;
+                uint8_t l_pixelHigh = (l_tileHigh >> l_shift) & 0x01;
+                uint8_t l_pixel = l_pixelLow | (l_pixelHigh << 1);
+
+                s_frameBuffer[l_pixelOffset++] = s_backgroundPalette[l_pixel];
+
+                l_windowX++;
+            }
+
+            l_windowY++;
+        }
     }
 
     frontendRenderFrame(s_frameBuffer);
@@ -318,4 +366,12 @@ static inline void corePpuDraw(void) {
 
 void corePpuWriteOamDma(unsigned int p_index, uint8_t p_value) {
     s_corePpuOamData[p_index] = p_value;
+}
+
+static inline bool corePpuCanAccessVram(void) {
+    return s_mode != E_CORE_PPU_MODE_DRAWING;
+}
+
+static inline bool corePpuCanAccessOam(void) {
+    return (s_mode & 0x02) == 0;
 }
