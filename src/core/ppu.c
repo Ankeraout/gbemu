@@ -260,7 +260,6 @@ static inline void corePpuUpdatePalette(
 
 static inline void corePpuDraw(void) {
     int l_backgroundLayer[160 * 144];
-    int l_objectLayer[160 * 144];
     uint32_t l_frameBuffer[160 * 144];
 
     if(s_bgWindowEnable) {
@@ -341,10 +340,12 @@ static inline void corePpuDraw(void) {
         memset(l_backgroundLayer, 0, sizeof(l_backgroundLayer));
     }
 
+    for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
+        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_backgroundLayer[l_pixelIndex]];
+    }
+
     // Draw sprites
     if(s_objEnable) {
-        memset(l_objectLayer, 0, sizeof(l_objectLayer));
-
         int l_oamOffset = 0;
 
         for(int l_objectIndex = 0; l_objectIndex < 40; l_objectIndex++) {
@@ -370,7 +371,7 @@ static inline void corePpuDraw(void) {
 
             for(int l_tileY = 0; l_tileY < s_objHeight; l_tileY++) {
                 uint8_t l_tileLow = s_corePpuVramData[l_tileOffset];
-                uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset];
+                uint8_t l_tileHigh = s_corePpuVramData[l_tileOffset | 1];
 
                 for(int l_tileX = 7; l_tileX >= 0; l_tileX--) {
                     uint8_t l_pixelLow = (l_tileLow >> l_tileX) & 0x01;
@@ -410,39 +411,23 @@ static inline void corePpuDraw(void) {
                         continue;
                     }
 
-                    l_objectLayer[l_pixelY * 160 + l_pixelX] = l_tileBuffer[l_row * 8 + l_col];
-                }
-            }
-
-            // Merge background and object layers
-            if(l_bgPriority) {
-                for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
+                    int l_pixelIndex = l_pixelY * 160 + l_pixelX;
+                    int l_pixelObject = l_tileBuffer[(l_row << 3) + l_col];
                     int l_pixelBackground = l_backgroundLayer[l_pixelIndex];
-                    int l_pixelObject = l_objectLayer[l_pixelIndex];
 
-                    if((l_pixelObject == 0) || (l_pixelBackground != 0)) {
-                        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_pixelBackground];
+                    if(l_bgPriority) {
+                        if((l_pixelBackground == 0) && (l_pixelObject != 0)) {
+                            l_frameBuffer[l_pixelIndex] = s_objectPalette[l_paletteIndex][l_pixelObject];
+                        }
                     } else {
-                        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[0];
-                    }
-                }
-            } else {
-                for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
-                    int l_pixelBackground = l_backgroundLayer[l_pixelIndex];
-                    int l_pixelObject = l_objectLayer[l_pixelIndex];
-
-                    if(l_pixelObject == 0) {
-                        l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_pixelBackground];
-                    } else {
-                        l_frameBuffer[l_pixelIndex] = s_objectPalette[l_paletteIndex][l_pixelObject];
+                        if(l_pixelObject != 0) {
+                            l_frameBuffer[l_pixelIndex] = s_objectPalette[l_paletteIndex][l_pixelObject];
+                        }
                     }
                 }
             }
         }
     } else {
-        for(int l_pixelIndex = 0; l_pixelIndex < 160 * 144; l_pixelIndex++) {
-            l_frameBuffer[l_pixelIndex] = s_backgroundPalette[l_backgroundLayer[l_pixelIndex]];
-        }
     }
 
     frontendRenderFrame(l_frameBuffer);
