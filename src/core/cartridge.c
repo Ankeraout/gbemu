@@ -5,16 +5,10 @@
 #include <string.h>
 
 #include "core/cartridge.h"
-#include "core/mappers/h161.h"
-#include "core/mappers/huc1.h"
-#include "core/mappers/huc3.h"
 #include "core/mappers/invalid.h"
 #include "core/mappers/mbc1.h"
-#include "core/mappers/mbc2.h"
 #include "core/mappers/mbc3.h"
 #include "core/mappers/mbc5.h"
-#include "core/mappers/mbc7.h"
-#include "core/mappers/mmm01.h"
 #include "core/mappers/none.h"
 
 static const uint8_t *s_coreCartridgeRomData;
