@@ -1,5 +1,7 @@
 MAKEFLAGS += --no-builtin-rules
 
+OPTIMIZE := 0
+
 MKDIR := mkdir -p
 RM := rm -rf
 CC := gcc -c
@@ -8,11 +10,17 @@ LD := gcc
 CFLAGS += -MMD -MP
 CFLAGS += -W -Wall -Wextra
 CFLAGS += -std=gnu99 -pedantic-errors
-CFLAGS += -g3 -O0
 CFLAGS += -Iinclude
 CFLAGS += `sdl2-config --cflags`
-LDFLAGS += -g3 -O0
 LIBS += `sdl2-config --libs`
+
+ifeq ($(OPTIMIZE),0)
+	CFLAGS += -g3 -O0
+	LDFLAGS += -g3 -O0
+else
+	CFLAGS += -Os -s -fno-ident
+	LDFLAGS += -Os -s -fno-ident
+endif
 
 rwildcard = $(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
