@@ -6,6 +6,7 @@
 #include <SDL2/SDL.h>
 
 #include "core/core.h"
+#include "core/joypad.h"
 #include "frontend/frontend.h"
 
 #define C_BIOS_FILE_SIZE 256
@@ -119,6 +120,51 @@ void frontendRenderFrame(const uint32_t *p_frameBuffer) {
                     exit(0);
                 }
 
+                break;
+
+            case SDL_KEYDOWN:
+                if(l_event.key.keysym.sym == SDLK_RIGHT) {
+                    coreJoypadSetInput(E_JOYPADINPUT_RIGHT, true);
+                } else if(l_event.key.keysym.sym == SDLK_LEFT) {
+                    coreJoypadSetInput(E_JOYPADINPUT_LEFT, true);
+                } else if(l_event.key.keysym.sym == SDLK_UP) {
+                    coreJoypadSetInput(E_JOYPADINPUT_UP, true);
+                } else if(l_event.key.keysym.sym == SDLK_DOWN) {
+                    coreJoypadSetInput(E_JOYPADINPUT_DOWN, true);
+                } else if(l_event.key.keysym.sym == SDLK_z) {
+                    coreJoypadSetInput(E_JOYPADINPUT_A, true);
+                } else if(l_event.key.keysym.sym == SDLK_x) {
+                    coreJoypadSetInput(E_JOYPADINPUT_B, true);
+                } else if(l_event.key.keysym.sym == SDLK_LSHIFT) {
+                    coreJoypadSetInput(E_JOYPADINPUT_SELECT, true);
+                } else if(l_event.key.keysym.sym == SDLK_RETURN) {
+                    coreJoypadSetInput(E_JOYPADINPUT_START, true);
+                }
+
+                break;
+
+            case SDL_KEYUP:
+                if(l_event.key.keysym.sym == SDLK_RIGHT) {
+                    coreJoypadSetInput(E_JOYPADINPUT_RIGHT, false);
+                } else if(l_event.key.keysym.sym == SDLK_LEFT) {
+                    coreJoypadSetInput(E_JOYPADINPUT_LEFT, false);
+                } else if(l_event.key.keysym.sym == SDLK_UP) {
+                    coreJoypadSetInput(E_JOYPADINPUT_UP, false);
+                } else if(l_event.key.keysym.sym == SDLK_DOWN) {
+                    coreJoypadSetInput(E_JOYPADINPUT_DOWN, false);
+                } else if(l_event.key.keysym.sym == SDLK_z) {
+                    coreJoypadSetInput(E_JOYPADINPUT_A, false);
+                } else if(l_event.key.keysym.sym == SDLK_x) {
+                    coreJoypadSetInput(E_JOYPADINPUT_B, false);
+                } else if(l_event.key.keysym.sym == SDLK_LSHIFT) {
+                    coreJoypadSetInput(E_JOYPADINPUT_SELECT, false);
+                } else if(l_event.key.keysym.sym == SDLK_RETURN) {
+                    coreJoypadSetInput(E_JOYPADINPUT_START, false);
+                }
+
+                break;
+
+            default:
                 break;
         }
     }
