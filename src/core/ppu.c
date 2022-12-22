@@ -65,6 +65,7 @@ static int s_tileIdInverter;
 static uint32_t s_frameBuffer[C_PPU_SCREEN_WIDTH * C_PPU_SCREEN_HEIGHT];
 static bool s_windowTriggered;
 static int s_windowCounter;
+static bool s_line153quirk;
 
 static inline void corePpuUpdatePalette(
     uint8_t p_paletteRegisterValue,
@@ -73,6 +74,7 @@ static inline void corePpuUpdatePalette(
 static inline void corePpuDrawLine(void);
 static inline bool corePpuCanAccessVram(void);
 static inline bool corePpuCanAccessOam(void);
+static inline void corePpuCheckLyc(void);
 
 void corePpuReset(void) {
     for(int l_vramOffset = 0; l_vramOffset < C_PPU_VRAM_SIZE; l_vramOffset++) {
@@ -103,53 +105,72 @@ void corePpuCycle(void) {
         s_lx = 0;
         s_ly = C_PPU_SCREEN_HEIGHT;
         s_mode = E_CORE_PPU_MODE_VBLANK;
+        s_line153quirk = true; // I think I read somewhere that the first scanline is not rendered when re-enabling LCD?
+        s_windowTriggered = false;
         return;
     }
 
     s_lx += 4;
 
-    if(s_ly < C_PPU_SCREEN_HEIGHT) {
-        if(s_lx == 80) {
-            s_mode = E_CORE_PPU_MODE_DRAWING;
-        } else if(s_lx == 252) {
-            s_mode = E_CORE_PPU_MODE_HBLANK;
-
-            if(s_interruptEnableHblank) {
-                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-            }
-
-            corePpuDrawLine();
-        }
-    }
-
-    if(s_lx == 456) {
-        s_ly++;
-        s_lx = 0;
-
-        if((s_ly == s_lyc) && s_interruptEnableLyc) {
-            coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-        }
-
-        if(s_ly == C_PPU_SCREEN_HEIGHT) {
-            s_mode = E_CORE_PPU_MODE_VBLANK;
-            coreCpuRequestInterrupt(E_CPUINTERRUPT_VBLANK);
-
-            if(s_interruptEnableVblank) {
-                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-            }
-
-            frontendRenderFrame(s_frameBuffer);
-        } else {
-            if(s_ly == 154) {
-                s_ly = 0;
-                s_windowTriggered = false;
-            }
-
+    if(s_line153quirk) {
+        if(s_lx == 456) {
+            s_lx = 0;
             s_mode = E_CORE_PPU_MODE_OAMSCAN;
+            s_line153quirk = false;
 
             if(s_interruptEnableOam) {
                 coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
             }
+        }
+    } else {
+        if(s_ly < C_PPU_SCREEN_HEIGHT) {
+            if(s_lx == 80) {
+                s_mode = E_CORE_PPU_MODE_DRAWING;
+            } else if(s_lx == 252) {
+                s_mode = E_CORE_PPU_MODE_HBLANK;
+
+                if(s_interruptEnableHblank) {
+                    coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+                }
+
+                corePpuDrawLine();
+            } else if(s_lx == 456) {
+                if(s_ly < (C_PPU_SCREEN_HEIGHT - 1)) {
+                    s_mode = E_CORE_PPU_MODE_OAMSCAN;
+                    
+                    if(s_interruptEnableOam) {
+                        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+                    }
+                } else {
+                    s_mode = E_CORE_PPU_MODE_VBLANK;
+                    
+                    if(s_interruptEnableVblank) {
+                        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+                    }
+
+                    coreCpuRequestInterrupt(E_CPUINTERRUPT_VBLANK);
+
+                    frontendRenderFrame(s_frameBuffer);
+                }
+
+                s_ly++;
+                s_lx = 0;
+
+                corePpuCheckLyc();
+            }
+        } else if(s_ly < 153) {
+            if(s_lx == 456) {
+                s_ly++;
+                s_lx = 0;
+
+                corePpuCheckLyc();
+            }
+        } else {
+            s_line153quirk = true;
+            s_windowTriggered = false;
+            s_ly = 0;
+
+            corePpuCheckLyc();
         }
     }
 }
@@ -229,6 +250,7 @@ void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
         s_scx = p_value;
     } else if(p_address == 0xff45) {
         s_lyc = p_value;
+        corePpuCheckLyc();
     } else if(p_address == 0xff47) {
         s_bgp = p_value;
         corePpuUpdatePalette(s_bgp, s_backgroundPalette);
@@ -507,4 +529,16 @@ static inline bool corePpuCanAccessVram(void) {
 
 static inline bool corePpuCanAccessOam(void) {
     return (s_mode & 0x02) == 0;
+}
+
+static inline void corePpuCheckLyc(void) {
+    static bool l_oldLycCondition = false;
+    bool l_lycCondition = (s_ly == s_lyc);
+    bool l_risingEdge = ((!l_oldLycCondition) && l_lycCondition);
+
+    if(l_risingEdge && s_interruptEnableLyc) {
+        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+    }
+
+    l_oldLycCondition = l_lycCondition;
 }
