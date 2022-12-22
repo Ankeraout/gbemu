@@ -78,7 +78,7 @@ static uint8_t coreMapperMbc5ReadRam(uint16_t p_address) {
 
 static void coreMapperMbc5WriteRom(uint16_t p_address, uint8_t p_value) {
     switch(p_address & 0x7000) {
-        case 0x0000: case 0x1000: s_ramEnabled = p_value == 0x0a; break;
+        case 0x0000: case 0x1000: s_ramEnabled = ((p_value == 0x0a) && (s_ramSize != 0)); break;
         case 0x2000:
             s_romOffset &= 0x00400000;
             s_romOffset |= p_value << 14;

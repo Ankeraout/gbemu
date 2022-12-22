@@ -91,7 +91,7 @@ static uint8_t coreMapperMbc1ReadRam(uint16_t p_address) {
 static void coreMapperMbc1WriteRom(uint16_t p_address, uint8_t p_value) {
     switch(p_address & 0x6000) {
         case 0x0000:
-            s_ramEnabled = (p_value == 0x0a);
+            s_ramEnabled = (p_value == 0x0a) && (s_ramSize != 0);
             break;
 
         case 0x2000:

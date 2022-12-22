@@ -163,7 +163,7 @@ static uint8_t coreMapperMbc3ReadRam(uint16_t p_address) {
 
 static void coreMapperMbc3WriteRom(uint16_t p_address, uint8_t p_value) {
     switch(p_address & 0x6000) {
-        case 0x0000: s_ramEnabled = p_value == 0x0a; break;
+        case 0x0000: s_ramEnabled = ((p_value == 0x0a) && (s_ramSize != 0)); break;
         case 0x2000:
             if(p_value == 0) {
                 s_romOffset = 0x4000;
