@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <SDL2/SDL.h>
 
@@ -12,7 +13,7 @@
 #define C_BIOS_FILE_SIZE 256
 #define C_MAX_ROM_FILE_SIZE 8388608
 #define C_MAX_SRAM_FILE_SIZE 131072
-#define C_FRAME_TIME 17
+#define C_FRAME_TIME 16742
 
 static SDL_Window *s_window;
 static SDL_Surface *s_bufferSurface;
@@ -50,6 +51,8 @@ static int loadFiles(
 );
 
 static void *loadFile(const char *p_fileName, size_t *p_fileSize);
+
+static inline uint64_t getTimeMicroseconds(void);
 
 int main(int p_argc, char *p_argv[]) {
     if(init(p_argc, p_argv) != 0) {
@@ -173,16 +176,16 @@ void frontendRenderFrame(const uint32_t *p_frameBuffer) {
         }
     }
 
-    uint64_t l_currentTime = SDL_GetTicks64();
+    uint64_t l_currentTime = getTimeMicroseconds();
 
     while(l_currentTime < s_frameTimer) {
         SDL_Delay(1);
-        l_currentTime = SDL_GetTicks64();
+        l_currentTime = getTimeMicroseconds();
     }
 
     s_frameTimer = l_currentTime + C_FRAME_TIME;
 
-    if((l_currentTime - s_frameCounterTimer) >= 1000) {
+    if((l_currentTime - s_frameCounterTimer) >= 1000000) {
         char l_titleBuffer[100];
 
         sprintf(l_titleBuffer, "gbemu (%d fps)", s_frameCounter);
@@ -302,7 +305,7 @@ static int init(int p_argc, char *p_argv[]) {
 
     s_windowScale = l_configuration.a_screenScale;
     s_frameCounter = 0;
-    s_frameCounterTimer = SDL_GetTicks64();
+    s_frameCounterTimer = getTimeMicroseconds();
     s_frameTimer = s_frameCounterTimer + C_FRAME_TIME;
 
     return 0;
@@ -373,4 +376,11 @@ static void *loadFile(const char *p_fileName, size_t *p_fileSize) {
     *p_fileSize = l_fileSize;
 
     return l_buffer;
+}
+
+static inline uint64_t getTimeMicroseconds(void) {
+    uint64_t l_counter = SDL_GetPerformanceCounter() * 1000000UL;
+    l_counter /= SDL_GetPerformanceFrequency();
+
+    return l_counter;
 }
