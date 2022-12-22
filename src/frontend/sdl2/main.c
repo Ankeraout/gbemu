@@ -21,6 +21,8 @@ static void *s_romData;
 static size_t s_romSize;
 static void *s_sramData;
 static size_t s_sramSize;
+static int s_frameCounter;
+static uint64_t s_frameTimer;
 
 struct ts_frontendConfiguration {
     char *a_biosFileName;
@@ -107,6 +109,21 @@ int main(int p_argc, char *p_argv[]) {
 }
 
 void frontendRenderFrame(const uint32_t *p_frameBuffer) {
+    uint64_t l_currentTime = SDL_GetTicks64();
+
+    if((l_currentTime - s_frameTimer) >= 1000) {
+        char l_titleBuffer[100];
+
+        sprintf(l_titleBuffer, "gbemu (%d fps)", s_frameCounter);
+
+        SDL_SetWindowTitle(s_window, l_titleBuffer);
+
+        s_frameCounter = 1;
+        s_frameTimer = l_currentTime;
+    } else {
+        s_frameCounter++;
+    }
+
     memcpy(s_bufferSurface->pixels, p_frameBuffer, 160 * 144 * 4);
     SDL_BlitScaled(s_bufferSurface, NULL, SDL_GetWindowSurface(s_window), NULL);
     SDL_UpdateWindowSurface(s_window);
@@ -169,7 +186,7 @@ void frontendRenderFrame(const uint32_t *p_frameBuffer) {
         }
     }
 
-    SDL_Delay(16);
+    SDL_Delay(15);
 }
 
 static void setDefaultConfiguration(
@@ -277,6 +294,8 @@ static int init(int p_argc, char *p_argv[]) {
     }
 
     s_windowScale = l_configuration.a_screenScale;
+    s_frameCounter = 0;
+    s_frameTimer = SDL_GetTicks64();
 
     return 0;
 }
