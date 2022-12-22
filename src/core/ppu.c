@@ -394,7 +394,7 @@ static inline void corePpuDrawLineDrawBackgroundObject(int p_backgroundBuffer[])
     }
 
     // Draw each object in the object buffer
-    for(int l_objectTableIndex = l_objectCount - 1; l_objectTableIndex >= 0; l_objectTableIndex--) {
+    for(int l_objectTableIndex = 0; l_objectTableIndex < l_objectCount; l_objectTableIndex++) {
         int l_objectOffset = l_objectTable[l_objectTableIndex];
         const int l_objectY = s_corePpuOamData[l_objectOffset++] - 16;
         int l_objectX = s_corePpuOamData[l_objectOffset++] - 8;
@@ -450,7 +450,11 @@ static inline void corePpuDrawLineDrawBackgroundObject(int p_backgroundBuffer[])
             int l_pixel = l_pixelLow | (l_pixelHigh << 1);
             int l_pixelFlags = l_objectFlags & C_PPU_OAMFLAG_MASK;
 
-            l_objectBuffer[l_objectX++] = l_pixel | l_pixelFlags;
+            if((l_pixel != 0) && (l_objectBuffer[l_objectX] == 0)) {
+                l_objectBuffer[l_objectX] = l_pixel | l_pixelFlags;
+            }
+
+            l_objectX++;
         }
     }
 
