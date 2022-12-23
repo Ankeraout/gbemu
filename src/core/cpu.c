@@ -63,12 +63,17 @@ static inline void coreCpuOpAdc(uint8_t p_value);
 static inline void coreCpuOpAdd(uint8_t p_value);
 static inline void coreCpuOpAddHl(uint16_t p_value);
 static inline void coreCpuOpAnd(uint8_t p_value);
+static inline void coreCpuOpCallCc(bool p_conditionCode);
 static inline void coreCpuOpCp(uint8_t p_value);
 static inline void coreCpuOpDaa(void);
 static inline uint8_t coreCpuOpDec8(uint8_t p_value);
 static inline void coreCpuOpInc16(uint16_t *p_register);
 static inline uint8_t coreCpuOpInc8(uint8_t p_value);
+static inline void coreCpuOpJpCc(bool p_conditionCode);
+static inline void coreCpuOpJrCc(bool p_conditionCode);
 static inline void coreCpuOpOr(uint8_t p_value);
+static inline void coreCpuOpPush(uint16_t p_value);
+static inline void coreCpuOpRetCc(bool p_conditionCode);
 static inline uint8_t coreCpuOpRl(uint8_t p_value);
 static inline uint8_t coreCpuOpRlBase(uint8_t p_value);
 static inline uint8_t coreCpuOpRlc(uint8_t p_value);
@@ -77,6 +82,7 @@ static inline uint8_t coreCpuOpRrBase(uint8_t p_value);
 static inline uint8_t coreCpuOpRr(uint8_t p_value);
 static inline uint8_t coreCpuOpRrc(uint8_t p_value);
 static inline uint8_t coreCpuOpRrcBase(uint8_t p_value);
+static inline void coreCpuOpRst(uint16_t p_value);
 static inline void coreCpuOpSbc(uint8_t p_value);
 static inline uint8_t coreCpuOpSla(uint8_t p_value);
 static inline uint8_t coreCpuOpSra(uint8_t p_value);
@@ -305,13 +311,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x20: // JR NZ, r8
-            if(s_coreCpuFlagZ) {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 1;
-            } else {
-                s_coreCpuRegisterPC += (int8_t)coreCpuFetch8();
-                coreBusCycle();
-            }
+            coreCpuOpJrCc(!s_coreCpuFlagZ);
 
             break;
 
@@ -353,14 +353,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x28: // JR Z, r8
-            if(s_coreCpuFlagZ) {
-                s_coreCpuRegisterPC += (int8_t)coreCpuFetch8();
-                coreBusCycle();
-            } else {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 1;
-            }
-
+            coreCpuOpJrCc(s_coreCpuFlagZ);
             break;
 
         case 0x29: // ADD HL, HL
@@ -401,14 +394,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x30: // JR NC, r8
-            if(s_coreCpuFlagC) {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 1;
-            } else {
-                s_coreCpuRegisterPC += (int8_t)coreCpuFetch8();
-                coreBusCycle();
-            }
-
+            coreCpuOpJrCc(!s_coreCpuFlagC);
             break;
 
         case 0x31: // LD SP, d16
@@ -455,14 +441,7 @@ void coreCpuStep(void) {
             break;
 
         case 0x38: // JR C, r8
-            if(s_coreCpuFlagC) {
-                s_coreCpuRegisterPC += (int8_t)coreCpuFetch8();
-                coreBusCycle();
-            } else {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 1;
-            }
-
+            coreCpuOpJrCc(s_coreCpuFlagC);
             break;
 
         case 0x39: // ADD HL, SP
@@ -503,7 +482,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x40: // LD B, B
-            s_coreCpuRegisterBC.byte.high = s_coreCpuRegisterBC.byte.high;
             break;
 
         case 0x41: // LD B, C
@@ -539,7 +517,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x49: // LD C, C
-            s_coreCpuRegisterBC.byte.low = s_coreCpuRegisterBC.byte.low;
             break;
 
         case 0x4a: // LD C, D
@@ -575,7 +552,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x52: // LD D, D
-            s_coreCpuRegisterDE.byte.high = s_coreCpuRegisterDE.byte.high;
             break;
 
         case 0x53: // LD D, E
@@ -611,7 +587,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x5b: // LD E, E
-            s_coreCpuRegisterDE.byte.low = s_coreCpuRegisterDE.byte.low;
             break;
 
         case 0x5c: // LD E, H
@@ -647,7 +622,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x64: // LD H, H
-            s_coreCpuRegisterHL.byte.high = s_coreCpuRegisterHL.byte.high;
             break;
 
         case 0x65: // LD H, L
@@ -683,7 +657,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x6d: // LD L, L
-            s_coreCpuRegisterHL.byte.low = s_coreCpuRegisterHL.byte.low;
             break;
 
         case 0x6e: // LD L, (HL)
@@ -755,7 +728,6 @@ void coreCpuStep(void) {
             break;
 
         case 0x7f: // LD A, A
-            s_coreCpuRegisterAF.byte.high = s_coreCpuRegisterAF.byte.high;
             break;
 
         case 0x80: // ADD A, B
@@ -1015,13 +987,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xc0: // RET NZ
-            coreBusCycle();
-
-            if(!s_coreCpuFlagZ) {
-                s_coreCpuRegisterPC = coreCpuPop();
-                coreBusCycle();
-            }
-
+            coreCpuOpRetCc(!s_coreCpuFlagZ);
             break;
 
         case 0xc1: // POP BC
@@ -1029,15 +995,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xc2: // JP NZ, a16
-            if(s_coreCpuFlagZ) {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            } else {
-                s_coreCpuRegisterPC = coreCpuFetch16();
-            }
-
-            coreBusCycle();
-
+            coreCpuOpJpCc(!s_coreCpuFlagZ);
             break;
 
         case 0xc3: // JP a16
@@ -1046,22 +1004,11 @@ void coreCpuStep(void) {
             break;
 
         case 0xc4: // CALL NZ, a16
-            if(s_coreCpuFlagZ) {
-                coreBusCycle();
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            } else {
-                uint16_t l_operand = coreCpuFetch16();
-                coreBusCycle();
-                coreCpuPush(s_coreCpuRegisterPC);
-                s_coreCpuRegisterPC = l_operand;
-            }
-
+            coreCpuOpCallCc(!s_coreCpuFlagZ);
             break;
 
         case 0xc5: // PUSH BC
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterBC.word);
+            coreCpuOpPush(s_coreCpuRegisterBC.word);
             break;
 
         case 0xc6: // ADD a, d8
@@ -1069,19 +1016,11 @@ void coreCpuStep(void) {
             break;
 
         case 0xc7: // RST 0x00
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x00;
+            coreCpuOpRst(0x00);
             break;
 
         case 0xc8: // RET Z
-            coreBusCycle();
-
-            if(s_coreCpuFlagZ) {
-                s_coreCpuRegisterPC = coreCpuPop();
-                coreBusCycle();
-            }
-
+            coreCpuOpRetCc(s_coreCpuFlagZ);
             break;
 
         case 0xc9: // RET
@@ -1090,15 +1029,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xca: // JP Z, a16
-            if(s_coreCpuFlagZ) {
-                s_coreCpuRegisterPC = coreCpuFetch16();
-            } else {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            }
-
-            coreBusCycle();
-
+            coreCpuOpJpCc(s_coreCpuFlagZ);
             break;
 
         case 0xcb: // Prefix
@@ -2259,17 +2190,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xcc: // CALL Z, a16
-            if(s_coreCpuFlagZ) {
-                uint16_t l_operand = coreCpuFetch16();
-                coreBusCycle();
-                coreCpuPush(s_coreCpuRegisterPC);
-                s_coreCpuRegisterPC = l_operand;
-            } else {
-                coreBusCycle();
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            }
-
+            coreCpuOpCallCc(s_coreCpuFlagZ);
             break;
 
         case 0xcd: // CALL a16
@@ -2287,19 +2208,11 @@ void coreCpuStep(void) {
             break;
 
         case 0xcf: // RST 0x08
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x08;
+            coreCpuOpRst(0x08);
             break;
 
         case 0xd0: // RET NC
-            coreBusCycle();
-
-            if(!s_coreCpuFlagC) {
-                s_coreCpuRegisterPC = coreCpuPop();
-                coreBusCycle();
-            }
-
+            coreCpuOpRetCc(!s_coreCpuFlagC);
             break;
 
         case 0xd1: // POP DE
@@ -2307,34 +2220,15 @@ void coreCpuStep(void) {
             break;
 
         case 0xd2: // JP NC, a16
-            if(s_coreCpuFlagC) {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            } else {
-                s_coreCpuRegisterPC = coreCpuFetch16();
-            }
-
-            coreBusCycle();
-
+            coreCpuOpJpCc(!s_coreCpuFlagC);
             break;
 
         case 0xd4: // CALL NC, a16
-            if(s_coreCpuFlagC) {
-                coreBusCycle();
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            } else {
-                uint16_t l_operand = coreCpuFetch16();
-                coreBusCycle();
-                coreCpuPush(s_coreCpuRegisterPC);
-                s_coreCpuRegisterPC = l_operand;
-            }
-
+            coreCpuOpCallCc(!s_coreCpuFlagC);
             break;
 
         case 0xd5: // PUSH DE
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterDE.word);
+            coreCpuOpPush(s_coreCpuRegisterDE.word);
             break;
 
         case 0xd6: // SUB A, d8
@@ -2342,19 +2236,11 @@ void coreCpuStep(void) {
             break;
 
         case 0xd7: // RST 0x10
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x10;
+            coreCpuOpRst(0x10);
             break;
 
         case 0xd8: // RET C
-            coreBusCycle();
-
-            if(s_coreCpuFlagC) {
-                s_coreCpuRegisterPC = coreCpuPop();
-                coreBusCycle();
-            }
-
+            coreCpuOpRetCc(s_coreCpuFlagC);
             break;
 
         case 0xd9: // RETI
@@ -2365,29 +2251,11 @@ void coreCpuStep(void) {
             break;
 
         case 0xda: // JP C, a16
-            if(s_coreCpuFlagC) {
-                s_coreCpuRegisterPC = coreCpuFetch16();
-            } else {
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            }
-
-            coreBusCycle();
-
+            coreCpuOpJpCc(s_coreCpuFlagC);
             break;
 
         case 0xdc: // CALL C, a16
-            if(s_coreCpuFlagC) {
-                uint16_t l_operand = coreCpuFetch16();
-                coreBusCycle();
-                coreCpuPush(s_coreCpuRegisterPC);
-                s_coreCpuRegisterPC = l_operand;
-            } else {
-                coreBusCycle();
-                coreBusCycle();
-                s_coreCpuRegisterPC += 2;
-            }
-
+            coreCpuOpCallCc(s_coreCpuFlagC);
             break;
 
         case 0xde: // SBC A, d8
@@ -2395,9 +2263,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xdf: // RST 0x18
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x18;
+            coreCpuOpRst(0x18);
             break;
 
         case 0xe0: // LDH (a8), A
@@ -2413,8 +2279,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xe5: // PUSH HL
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterHL.word);
+            coreCpuOpPush(s_coreCpuRegisterHL.word);
             break;
 
         case 0xe6: // AND d8
@@ -2422,9 +2287,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xe7: // RST 0x20
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x20;
+            coreCpuOpRst(0x20);
             break;
 
         case 0xe8: // ADD SP, r8
@@ -2462,9 +2325,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xef: // RST 0x28
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x28;
+            coreCpuOpRst(0x28);
             break;
 
         case 0xf0: // LDH A, (a8)
@@ -2496,9 +2357,8 @@ void coreCpuStep(void) {
                 | (s_coreCpuFlagH ? 0x20 : 0x00)
                 | (s_coreCpuFlagC ? 0x10 : 0x00)
             );
-
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterAF.word);
+            
+            coreCpuOpPush(s_coreCpuRegisterAF.word);
 
             break;
 
@@ -2507,9 +2367,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xf7: // RST 0x30
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x30;
+            coreCpuOpRst(0x30);
             break;
 
         case 0xf8: // LD HL, SP + r8
@@ -2554,9 +2412,7 @@ void coreCpuStep(void) {
             break;
 
         case 0xff: // RST 0x38
-            coreBusCycle();
-            coreCpuPush(s_coreCpuRegisterPC);
-            s_coreCpuRegisterPC = 0x38;
+            coreCpuOpRst(0x38);
             break;
 
         default: // Freeze the CPU
@@ -2680,6 +2536,16 @@ static inline void coreCpuOpAnd(uint8_t p_value) {
     s_coreCpuFlagC = false;
 }
 
+static inline void coreCpuOpCallCc(bool p_conditionCode) {
+    uint16_t l_address = coreCpuFetch16();
+
+    if(p_conditionCode) {
+        coreBusCycle();
+        coreCpuPush(s_coreCpuRegisterPC);
+        s_coreCpuRegisterPC = l_address;
+    }
+}
+
 static inline void coreCpuOpCp(uint8_t p_value) {
     s_coreCpuFlagN = true;
     s_coreCpuFlagH = (s_coreCpuRegisterAF.byte.high & 0x0f) < (p_value & 0x0f);
@@ -2737,6 +2603,24 @@ static inline uint8_t coreCpuOpInc8(uint8_t p_value) {
     return p_value;
 }
 
+static inline void coreCpuOpJpCc(bool p_conditionCode) {
+    uint16_t l_address = coreCpuFetch16();
+
+    if(p_conditionCode) {
+        s_coreCpuRegisterPC = l_address;
+        coreBusCycle();
+    }
+}
+
+static inline void coreCpuOpJrCc(bool p_conditionCode) {
+    int8_t l_operand = (int8_t)coreCpuFetch8();
+
+    if(p_conditionCode) {
+        s_coreCpuRegisterPC += l_operand;
+        coreBusCycle();
+    }
+}
+
 static inline void coreCpuOpOr(uint8_t p_value) {
     s_coreCpuRegisterAF.byte.high |= p_value;
 
@@ -2744,6 +2628,20 @@ static inline void coreCpuOpOr(uint8_t p_value) {
     s_coreCpuFlagN = false;
     s_coreCpuFlagH = false;
     s_coreCpuFlagC = false;
+}
+
+static inline void coreCpuOpPush(uint16_t p_value) {
+    coreBusCycle();
+    coreCpuPush(p_value);
+}
+
+static inline void coreCpuOpRetCc(bool p_conditionCode) {
+    coreBusCycle();
+
+    if(p_conditionCode) {
+        s_coreCpuRegisterPC = coreCpuPop();
+        coreBusCycle();
+    }
 }
 
 static inline uint8_t coreCpuOpRl(uint8_t p_value) {
@@ -2812,6 +2710,12 @@ static inline uint8_t coreCpuOpRrcBase(uint8_t p_value) {
     s_coreCpuFlagC = (p_value & 0x01) != 0;
 
     return (p_value >> 1) | (s_coreCpuFlagC ? 0x80 : 0x00);
+}
+
+static inline void coreCpuOpRst(uint16_t p_value) {
+    coreBusCycle();
+    coreCpuPush(s_coreCpuRegisterPC);
+    s_coreCpuRegisterPC = p_value;
 }
 
 static inline void coreCpuOpSbc(uint8_t p_value) {

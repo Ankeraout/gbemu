@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 #include "common.h"
+#include "core/cpu.h"
 #include "core/joypad.h"
 
 static bool s_coreJoypadSelectAction;
@@ -39,6 +40,8 @@ void coreJoypadSetInput(enum te_coreJoypadInput p_input, bool p_pressed) {
 }
 
 static void coreJoypadUpdate(void) {
+    uint8_t l_oldValue = s_coreJoypadRegisterJoyp & 0x0f;
+
     s_coreJoypadRegisterJoyp = 0xff;
 
     if(s_coreJoypadSelectAction) {
@@ -63,5 +66,11 @@ static void coreJoypadUpdate(void) {
                 s_coreJoypadRegisterJoyp &= ~(1 << l_button);
             }
         }
+    }
+
+    uint8_t l_newValue = s_coreJoypadRegisterJoyp & 0x0f;
+
+    if((l_oldValue & (~l_newValue)) != 0) {
+        coreCpuRequestInterrupt(E_CPUINTERRUPT_JOYPAD);
     }
 }

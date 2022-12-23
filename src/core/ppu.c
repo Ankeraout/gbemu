@@ -102,11 +102,6 @@ void corePpuReset(void) {
 
 void corePpuCycle(void) {
     if(!s_lcdEnable) {
-        s_lx = 0;
-        s_ly = C_PPU_SCREEN_HEIGHT;
-        s_mode = E_CORE_PPU_MODE_VBLANK;
-        s_line153quirk = true; // I think I read somewhere that the first scanline is not rendered when re-enabling LCD?
-        s_windowTriggered = false;
         return;
     }
 
@@ -228,8 +223,28 @@ uint8_t corePpuReadOam(uint16_t p_address) {
 
 void corePpuWriteIo(uint16_t p_address, uint8_t p_value) {
     if(p_address == 0xff40) {
+        bool l_previousLcdEnable = s_lcdEnable;
+
         s_lcdc = p_value;
         s_lcdEnable = (p_value & 0x80) != 0;
+
+        if(!s_lcdEnable) {
+            s_mode = E_CORE_PPU_MODE_HBLANK;
+            s_ly = 0;            
+        } else if(!l_previousLcdEnable) {
+            s_mode = E_CORE_PPU_MODE_OAMSCAN;
+            
+            if(s_interruptEnableOam) {
+                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+            }
+
+            s_line153quirk = false;
+            s_windowTriggered = false;
+            s_ly = 0;
+
+            corePpuCheckLyc();
+        }
+
         s_windowTileMapOffset = ((p_value & 0x40) == 0) ? 0x1800 : 0x1c00;
         s_windowEnable = (p_value & 0x20) != 0;
         s_bgTileSetOffset = ((p_value & 0x10) == 0) ? 0x0800 : 0x0000;
