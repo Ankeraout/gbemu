@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 
 #include "core/cpu.h"
 #include "core/serial.h"
@@ -60,6 +59,6 @@ void coreSerialWrite(uint16_t p_address, uint8_t p_value) {
 
         s_coreSerialInternalClock = (p_value & 0x01) != 0;
 
-        s_coreSerialRegisterSc = p_value;
+        s_coreSerialRegisterSc = p_value | (l_oldSc & 0x80);
     }
 }
