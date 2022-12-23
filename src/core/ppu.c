@@ -517,7 +517,6 @@ static inline void corePpuDrawLine(void) {
 
     if(s_objEnable) {
         corePpuDrawLineDrawBackgroundObject(l_backgroundBuffer);
-        //corePpuDrawLineDrawBackground(l_backgroundBuffer);
     } else {
         corePpuDrawLineDrawBackground(l_backgroundBuffer);
     }
