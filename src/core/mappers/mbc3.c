@@ -36,6 +36,7 @@ static int coreMapperMbc3Init(
 );
 static void coreMapperMbc3Reset(void);
 static void coreMapperMbc3Cycle(void);
+static void coreMapperMbc3CycleDouble(void);
 static uint8_t coreMapperMbc3ReadRom(uint16_t p_address);
 static uint8_t coreMapperMbc3ReadRam(uint16_t p_address);
 static void coreMapperMbc3WriteRom(uint16_t p_address, uint8_t p_value);
@@ -46,6 +47,7 @@ const struct ts_coreCartridgeMapper g_coreCartridgeMapperMbc3 = {
     .init = coreMapperMbc3Init,
     .reset = coreMapperMbc3Reset,
     .cycle = coreMapperMbc3Cycle,
+    .cycleDouble = coreMapperMbc3CycleDouble,
     .readRam = coreMapperMbc3ReadRam,
     .readRom = coreMapperMbc3ReadRom,
     .writeRam = coreMapperMbc3WriteRam,
@@ -109,6 +111,10 @@ static void coreMapperMbc3Cycle(void) {
             }
         }
     }
+}
+
+static void coreMapperMbc3CycleDouble(void) {
+    // TODO
 }
 
 static uint8_t coreMapperMbc3ReadRom(uint16_t p_address) {

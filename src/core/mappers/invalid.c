@@ -20,6 +20,7 @@ const struct ts_coreCartridgeMapper g_coreCartridgeMapperInvalid = {
     .init = coreMapperInvalidInit,
     .reset = NULL,
     .cycle = NULL,
+    .cycleDouble = NULL,
     .readRam = coreMapperInvalidReadRam,
     .readRom = coreMapperInvalidReadRom,
     .writeRam = coreMapperInvalidWriteRam,

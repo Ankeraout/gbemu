@@ -26,6 +26,7 @@ const struct ts_coreCartridgeMapper g_coreCartridgeMapperNone = {
     .init = coreMapperNoneInit,
     .reset = NULL,
     .cycle = NULL,
+    .cycleDouble = NULL,
     .readRam = coreMapperNoneReadRam,
     .readRom = coreMapperNoneReadRom,
     .writeRam = coreMapperNoneWriteRam,

@@ -1,6 +1,7 @@
 #ifndef __INCLUDE_CORE_BUS_H__
 #define __INCLUDE_CORE_BUS_H__
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "core/cartridge.h"
@@ -11,5 +12,6 @@ void coreBusWrite(uint16_t p_address, uint8_t p_value);
 void coreBusCycle(void);
 void coreBusSetMapper(struct ts_coreCartridgeMapper *p_mapper);
 uint8_t coreBusReadDma(uint16_t p_address);
+void coreBusSetDoubleSpeed(bool p_doubleSpeed);
 
 #endif

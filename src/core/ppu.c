@@ -75,6 +75,7 @@ static inline void corePpuDrawLine(void);
 static inline bool corePpuCanAccessVram(void);
 static inline bool corePpuCanAccessOam(void);
 static inline void corePpuCheckLyc(void);
+static inline void corePpuCycleCommon(void);
 
 void corePpuReset(void) {
     for(int l_vramOffset = 0; l_vramOffset < C_PPU_VRAM_SIZE; l_vramOffset++) {
@@ -107,67 +108,17 @@ void corePpuCycle(void) {
 
     s_lx += 4;
 
-    if(s_line153quirk) {
-        if(s_lx == 456) {
-            s_lx = 0;
-            s_mode = E_CORE_PPU_MODE_OAMSCAN;
-            s_line153quirk = false;
+    corePpuCycleCommon();
+}
 
-            if(s_interruptEnableOam) {
-                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-            }
-        }
-    } else {
-        if(s_ly < C_PPU_SCREEN_HEIGHT) {
-            if(s_lx == 80) {
-                s_mode = E_CORE_PPU_MODE_DRAWING;
-            } else if(s_lx == 252) {
-                s_mode = E_CORE_PPU_MODE_HBLANK;
-
-                if(s_interruptEnableHblank) {
-                    coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-                }
-
-                corePpuDrawLine();
-            } else if(s_lx == 456) {
-                if(s_ly < (C_PPU_SCREEN_HEIGHT - 1)) {
-                    s_mode = E_CORE_PPU_MODE_OAMSCAN;
-                    
-                    if(s_interruptEnableOam) {
-                        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-                    }
-                } else {
-                    s_mode = E_CORE_PPU_MODE_VBLANK;
-                    
-                    if(s_interruptEnableVblank) {
-                        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
-                    }
-
-                    coreCpuRequestInterrupt(E_CPUINTERRUPT_VBLANK);
-
-                    frontendRenderFrame(s_frameBuffer);
-                }
-
-                s_ly++;
-                s_lx = 0;
-
-                corePpuCheckLyc();
-            }
-        } else if(s_ly < 153) {
-            if(s_lx == 456) {
-                s_ly++;
-                s_lx = 0;
-
-                corePpuCheckLyc();
-            }
-        } else {
-            s_line153quirk = true;
-            s_windowTriggered = false;
-            s_ly = 0;
-
-            corePpuCheckLyc();
-        }
+void corePpuCycleDouble(void) {
+    if(!s_lcdEnable) {
+        return;
     }
+
+    s_lx += 2;
+
+    corePpuCycleCommon();
 }
 
 uint8_t corePpuReadIo(uint16_t p_address) {
@@ -555,4 +506,69 @@ static inline void corePpuCheckLyc(void) {
     }
 
     l_oldLycCondition = l_lycCondition;
+}
+
+
+static inline void corePpuCycleCommon(void) {
+    if(s_line153quirk) {
+        if(s_lx >= 456) {
+            s_lx -= 456;
+            s_mode = E_CORE_PPU_MODE_OAMSCAN;
+            s_line153quirk = false;
+
+            if(s_interruptEnableOam) {
+                coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+            }
+        }
+    } else {
+        if(s_ly < C_PPU_SCREEN_HEIGHT) {
+            if(s_lx >= 456) {
+                if(s_ly < (C_PPU_SCREEN_HEIGHT - 1)) {
+                    s_mode = E_CORE_PPU_MODE_OAMSCAN;
+                    
+                    if(s_interruptEnableOam) {
+                        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+                    }
+                } else {
+                    s_mode = E_CORE_PPU_MODE_VBLANK;
+                    
+                    if(s_interruptEnableVblank) {
+                        coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+                    }
+
+                    coreCpuRequestInterrupt(E_CPUINTERRUPT_VBLANK);
+
+                    frontendRenderFrame(s_frameBuffer);
+                }
+
+                s_ly++;
+                s_lx -= 456;
+
+                corePpuCheckLyc();
+            } else if(s_lx >= 252) {
+                s_mode = E_CORE_PPU_MODE_HBLANK;
+
+                if(s_interruptEnableHblank) {
+                    coreCpuRequestInterrupt(E_CPUINTERRUPT_STAT);
+                }
+
+                corePpuDrawLine();
+            } else if(s_lx >= 80) {
+                s_mode = E_CORE_PPU_MODE_DRAWING;
+            }
+        } else if(s_ly < 153) {
+            if(s_lx >= 456) {
+                s_ly++;
+                s_lx -= 456;
+
+                corePpuCheckLyc();
+            }
+        } else {
+            s_line153quirk = true;
+            s_windowTriggered = false;
+            s_ly = 0;
+
+            corePpuCheckLyc();
+        }
+    }
 }

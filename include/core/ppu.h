@@ -5,6 +5,7 @@
 
 void corePpuReset(void);
 void corePpuCycle(void);
+void corePpuCycleDouble(void);
 uint8_t corePpuReadIo(uint16_t p_address);
 uint8_t corePpuReadVram(uint16_t p_address);
 uint8_t corePpuReadOam(uint16_t p_address);

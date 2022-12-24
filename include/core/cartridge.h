@@ -25,6 +25,7 @@ struct ts_coreCartridgeMapper {
     t_coreCartridgeMapperInitFunc init;
     t_coreCartridgeMapperResetFunc reset;
     t_coreCartridgeMapperCycleFunc cycle;
+    t_coreCartridgeMapperCycleFunc cycleDouble;
     t_coreCartridgeMapperReadFunc readRom;
     t_coreCartridgeMapperReadFunc readRam;
     t_coreCartridgeMapperWriteFunc writeRom;
@@ -33,6 +34,7 @@ struct ts_coreCartridgeMapper {
 
 void coreCartridgeReset(void);
 void coreCartridgeCycle(void);
+void coreCartridgeCycleDouble(void);
 int coreCartridgeSetRom(const void *p_rom, size_t p_size);
 const struct ts_coreCartridgeMapper *coreCartridgeGetMapper(void);
 

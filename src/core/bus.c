@@ -20,6 +20,7 @@ typedef void (*t_coreBusWriteFunc)(uint16_t p_address, uint8_t p_value);
 
 static t_coreBusReadFunc s_coreBusReadFuncTable[65536];
 static t_coreBusWriteFunc s_coreBusWriteFuncTable[65536];
+static bool s_coreBusDoubleSpeed;
 
 static uint8_t coreBusReadOpenBus(uint16_t p_address);
 static void coreBusWriteOpenBus(uint16_t p_address, uint8_t p_value);
@@ -129,6 +130,9 @@ void coreBusReset(void) {
     // CPU IE
     s_coreBusReadFuncTable[0xffff] = coreCpuRead;
     s_coreBusWriteFuncTable[0xffff] = coreCpuWrite;
+
+    // CPU starts in simple speed
+    s_coreBusDoubleSpeed = false;
 }
 
 uint8_t coreBusRead(uint16_t p_address) {
@@ -158,11 +162,21 @@ void coreBusWrite(uint16_t p_address, uint8_t p_value) {
 }
 
 void coreBusCycle(void) {
-    coreCartridgeCycle();
+    if(s_coreBusDoubleSpeed) {
+        coreCartridgeCycleDouble();
+        corePpuCycleDouble();
+    } else {
+        coreCartridgeCycle();
+        corePpuCycle();
+    }
+
     coreDmaCycle();
-    corePpuCycle();
     coreSerialCycle();
     coreTimerCycle();
+}
+
+void coreBusSetDoubleSpeed(bool p_doubleSpeed) {
+    s_coreBusDoubleSpeed = p_doubleSpeed;
 }
 
 static uint8_t coreBusReadOpenBus(uint16_t p_address) {

@@ -39,6 +39,12 @@ void coreCartridgeCycle(void) {
     }
 }
 
+void coreCartridgeCycleDouble(void) {
+    if(s_coreCartridgeMapper->cycleDouble != NULL) {
+        s_coreCartridgeMapper->cycleDouble();
+    }
+}
+
 int coreCartridgeSetRom(const void *p_rom, size_t p_size) {
     s_coreCartridgeRomData = p_rom;
     s_coreCartridgeRomSize = p_size;
