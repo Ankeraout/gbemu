@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "core/apu.h"
 #include "core/cpu.h"
 #include "core/timer.h"
 
@@ -131,6 +132,8 @@ static inline void coreTimerIncreaseTima(void) {
 static inline void coreTimerUpdateDiv(uint16_t p_newValue) {
     bool l_oldBit = (s_coreTimerRegisterDiv & s_coreTimerClockBit) != 0;
     bool l_newBit = (p_newValue & s_coreTimerClockBit) != 0;
+    bool l_oldDivApuBit = (s_coreTimerRegisterDiv & (1 << 12)) != 0;
+    bool l_newDivApuBit = (p_newValue & (1 << 12)) != 0;
 
     s_coreTimerRegisterDiv = p_newValue;
     s_coreTimerReloadTima2 = false;
@@ -146,5 +149,9 @@ static inline void coreTimerUpdateDiv(uint16_t p_newValue) {
         if(l_oldBit && !l_newBit) {
             coreTimerIncreaseTima();
         }
+    }
+
+    if(l_oldDivApuBit & !l_newDivApuBit) {
+        coreApuDivCycle();
     }
 }
